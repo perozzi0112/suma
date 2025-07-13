@@ -7,20 +7,28 @@ import { getFirestore } from 'firebase-admin/firestore';
 let messaging: any = null;
 let db: any = null;
 
-if (!getApps().length && process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
-  try {
-    initializeApp({
-      credential: cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-      }),
-    });
-    
-    messaging = getMessaging();
-    db = getFirestore();
-  } catch (error) {
-    console.error('Error inicializando Firebase Admin:', error);
+if (!getApps().length) {
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+
+  if (projectId && clientEmail && privateKey) {
+    try {
+      initializeApp({
+        credential: cert({
+          projectId,
+          clientEmail,
+          privateKey: privateKey.replace(/\\n/g, '\n'),
+        }),
+      });
+      
+      messaging = getMessaging();
+      db = getFirestore();
+    } catch (error) {
+      console.error('Error inicializando Firebase Admin:', error);
+    }
+  } else {
+    console.warn('Firebase Admin no inicializado: variables de entorno faltantes');
   }
 }
 
