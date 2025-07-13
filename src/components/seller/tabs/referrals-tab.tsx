@@ -254,22 +254,161 @@ export function ReferralsTab({ referredDoctors, referralCode, onUpdate }: Referr
       </div>
 
       <Dialog open={isDoctorDialogOpen} onOpenChange={setIsDoctorDialogOpen}>
-        <DialogContent className="sm:max-w-[625px]">
-          <DialogHeader><DialogTitle>Registrar Nuevo Médico</DialogTitle><DialogDescription>Completa la información del perfil del médico. Quedará registrado como tu referido.</DialogDescription></DialogHeader>
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Registrar Nuevo Médico</DialogTitle>
+            <DialogDescription>
+              Completa la información del perfil del médico. Quedará registrado como tu referido.
+            </DialogDescription>
+          </DialogHeader>
           <form onSubmit={handleSaveDoctor}>
-              <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="doc-name" className="text-right">Nombre</Label><Input id="doc-name" name="doc-name" className="col-span-3" required /></div>
-                  <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="doc-email" className="text-right">Email</Label><Input id="doc-email" name="doc-email" type="email" className="col-span-3" required /></div>
-                  <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="doc-password" className="text-right">Contraseña</Label><Input id="doc-password" name="doc-password" type="password" className="col-span-3" required /></div>
-                  <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="doc-confirm-password" className="text-right">Confirmar</Label><Input id="doc-confirm-password" name="doc-confirm-password" type="password" className="col-span-3" required /></div>
-                  <p className="col-start-2 col-span-3 text-xs text-muted-foreground">Mínimo 8 caracteres, con mayúsculas, minúsculas y números.</p>
-                  <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="doc-specialty" className="text-right">Especialidad</Label><Select name="doc-specialty"><SelectTrigger className="col-span-3"><SelectValue placeholder="Selecciona..."/></SelectTrigger><SelectContent>{specialties.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div>
-                  <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="doc-address" className="text-right">Dirección</Label><Input id="doc-address" name="doc-address" className="col-span-3" required /></div>
-                  <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="doc-city" className="text-right">Ciudad</Label><Select name="doc-city"><SelectTrigger className="col-span-3"><SelectValue placeholder="Selecciona..."/></SelectTrigger><SelectContent>{cities.map(c => <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>)}</SelectContent></Select></div>
-                  <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="doc-slot-duration" className="text-right">Duración Cita (min)</Label><Input id="doc-slot-duration" name="doc-slot-duration" type="number" defaultValue="30" className="col-span-3" required min="5"/></div>
-                  <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="doc-consultation-fee" className="text-right">Tarifa Consulta ($)</Label><Input id="doc-consultation-fee" name="doc-consultation-fee" type="number" defaultValue="20" className="col-span-3" required min="0"/></div>
+            <div className="space-y-6 py-4">
+              {/* Información Personal */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-primary border-b pb-2">Información Personal</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="doc-name">Nombre Completo</Label>
+                    <Input 
+                      id="doc-name" 
+                      name="doc-name" 
+                      placeholder="Dr. Juan Pérez" 
+                      required 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="doc-email">Correo Electrónico</Label>
+                    <Input 
+                      id="doc-email" 
+                      name="doc-email" 
+                      type="email" 
+                      placeholder="doctor@ejemplo.com" 
+                      required 
+                    />
+                  </div>
+                </div>
               </div>
-              <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Guardar Médico</Button></DialogFooter>
+
+              {/* Seguridad */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-primary border-b pb-2">Seguridad</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="doc-password">Contraseña</Label>
+                    <Input 
+                      id="doc-password" 
+                      name="doc-password" 
+                      type="password" 
+                      placeholder="••••••••" 
+                      required 
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      8+ caracteres, con mayúsculas, minúsculas y números
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="doc-confirm-password">Confirmar Contraseña</Label>
+                    <Input 
+                      id="doc-confirm-password" 
+                      name="doc-confirm-password" 
+                      type="password" 
+                      placeholder="••••••••" 
+                      required 
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Información Profesional */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-primary border-b pb-2">Información Profesional</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="doc-specialty">Especialidad</Label>
+                    <Select name="doc-specialty">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona una especialidad..."/>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {specialties.map(s => (
+                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="doc-city">Ciudad</Label>
+                    <Select name="doc-city">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona una ciudad..."/>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {cities.map(c => (
+                          <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="doc-address">Dirección del Consultorio</Label>
+                  <Input 
+                    id="doc-address" 
+                    name="doc-address" 
+                    placeholder="Ej: Av. Principal, Centro Médico, Piso 2, Consultorio 204" 
+                    required 
+                  />
+                </div>
+              </div>
+
+              {/* Configuración de Citas */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-primary border-b pb-2">Configuración de Citas</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="doc-slot-duration">Duración por Cita (minutos)</Label>
+                    <Input 
+                      id="doc-slot-duration" 
+                      name="doc-slot-duration" 
+                      type="number" 
+                      defaultValue="30" 
+                      min="5" 
+                      max="120" 
+                      required 
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Tiempo promedio por consulta
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="doc-consultation-fee">Tarifa de Consulta ($)</Label>
+                    <Input 
+                      id="doc-consultation-fee" 
+                      name="doc-consultation-fee" 
+                      type="number" 
+                      defaultValue="20" 
+                      min="0" 
+                      step="0.01" 
+                      required 
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Precio base por consulta
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <DialogFooter className="flex flex-col sm:flex-row gap-2">
+              <DialogClose asChild>
+                <Button type="button" variant="outline" className="w-full sm:w-auto">
+                  Cancelar
+                </Button>
+              </DialogClose>
+              <Button type="submit" className="w-full sm:w-auto">
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Registrar Médico
+              </Button>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>

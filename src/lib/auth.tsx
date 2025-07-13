@@ -157,12 +157,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     const lowerEmail = email.toLowerCase();
     
-    // Handle admin login
-    if (lowerEmail === 'admin@admin.com') {
-      if (password === '1234') { // Using a simple, non-secure password for this mock.
+    // Handle admin login with new credentials
+    if (lowerEmail === 'perozzi0112@gmail.com') {
+      if (password === '..Suma..01') {
         const adminUser: User = { 
-          id: 'admin@admin.com', email, name: 'Administrador', role: 'admin', age: null, gender: null,
-          cedula: null, phone: null, profileImage: 'https://placehold.co/100x100.png', favoriteDoctorIds: [], password: '1234',
+          id: 'admin-suma-2024', 
+          email: lowerEmail, 
+          name: 'Administrador Suma', 
+          role: 'admin', 
+          age: null, 
+          gender: null,
+          cedula: null, 
+          phone: null, 
+          profileImage: 'https://placehold.co/400x400.png', 
+          favoriteDoctorIds: [], 
+          password: '..Suma..01',
           city: null
         };
         setUser(adminUser);
@@ -207,7 +216,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const newPatientData: Omit<Patient, 'id'> = { name, email, password, age: null, gender: null, profileImage: null, cedula: null, phone: null, city: null, favoriteDoctorIds: [] };
+    const newPatientData: Omit<Patient, 'id'> = { 
+      name, 
+      email, 
+      password, 
+      age: null, 
+      gender: null, 
+      profileImage: null, 
+      cedula: null, 
+      phone: null, 
+      city: null, 
+      favoriteDoctorIds: [],
+      profileCompleted: false // Nuevo flag para indicar que el perfil no está completo
+    };
     const newPatientId = await firestoreService.addPatient(newPatientData);
     
     const newUser: User = { id: newPatientId, ...newPatientData, role: 'patient' };
@@ -279,11 +300,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
+    sessionStorage.removeItem('user'); // Limpiar también sessionStorage
+    // Limpiar cualquier cookie de sesión si las hubiera
+    document.cookie.split(";").forEach(function(c) { 
+      document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+    });
     router.push('/');
   };
 
   const updateUser = async (data: Partial<Patient | Seller>) => {
     if (!user || !user.id) return;
+    
+    console.log('Actualizando usuario con datos:', data);
+    console.log('Usuario actual:', user);
     
     if (user.role === 'patient') {
       await firestoreService.updatePatient(user.id, data as Partial<Patient>);
@@ -294,6 +323,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const updatedUser = { ...user, ...data };
+    console.log('Usuario actualizado:', updatedUser);
+    
     setUser(updatedUser as User);
     localStorage.setItem('user', JSON.stringify(updatedUser));
   };

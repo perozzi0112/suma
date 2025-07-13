@@ -32,6 +32,19 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
     fetchAppointments();
   }, [fetchAppointments]);
 
+  // Actualización automática cada 30 segundos para pacientes
+  useEffect(() => {
+    let interval: NodeJS.Timeout | undefined;
+    
+    if (user?.role === 'patient' && user.id) {
+      interval = setInterval(fetchAppointments, 30000); // cada 30 segundos
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [user, fetchAppointments]);
+
   const addAppointment = useCallback(async (newAppointmentData: Omit<Appointment, 'id' | 'patientId' | 'patientName'>) => {
     if (!user || user.role !== 'patient') return; 
 

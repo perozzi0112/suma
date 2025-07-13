@@ -3,13 +3,16 @@
 import { useState } from 'react';
 import type { BankDetail } from "@/lib/types";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PlusCircle, Pencil, Trash2 } from 'lucide-react';
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { PlusCircle, Pencil, Trash2, Loader2, Building2, CreditCard, User, Hash } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
@@ -21,7 +24,6 @@ const BankDetailFormSchema = z.object({
     accountNumber: z.string().min(20, "El número de cuenta debe tener 20 dígitos.").max(20, "El número de cuenta debe tener 20 dígitos."),
     description: z.string().optional(),
 });
-
 
 interface BankManagementCardProps {
     bankDetails: BankDetail[];
@@ -36,6 +38,8 @@ export function BankManagementCard({ bankDetails, onAddBankDetail, onUpdateBankD
     const [editingBankDetail, setEditingBankDetail] = useState<BankDetail | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [itemToDelete, setItemToDelete] = useState<BankDetail | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
     
     const openDialog = (item: BankDetail | null) => {
         setEditingBankDetail(item);
@@ -49,6 +53,8 @@ export function BankManagementCard({ bankDetails, onAddBankDetail, onUpdateBankD
     
     const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        setIsSaving(true);
+        
         const formData = new FormData(e.currentTarget);
         const data = {
             bank: formData.get('bankName') as string,
@@ -60,89 +66,326 @@ export function BankManagementCard({ bankDetails, onAddBankDetail, onUpdateBankD
         const result = BankDetailFormSchema.safeParse(data);
         if(!result.success) {
             toast({ variant: 'destructive', title: 'Error', description: result.error.errors.map(e=>e.message).join(' ') });
+            setIsSaving(false);
             return;
         }
 
         try {
             if (editingBankDetail) {
                 await onUpdateBankDetail(editingBankDetail.id, { ...result.data, id: editingBankDetail.id });
-                toast({ title: 'Cuenta Actualizada'});
+                toast({ title: 'Cuenta Actualizada', description: 'Los cambios han sido guardados exitosamente.' });
             } else {
                 await onAddBankDetail(result.data);
-                toast({ title: 'Cuenta Añadida'});
+                toast({ title: 'Cuenta Añadida', description: 'La cuenta bancaria ha sido creada exitosamente.' });
             }
             setIsDialogOpen(false);
             setEditingBankDetail(null);
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar la cuenta bancaria.' });
+        } finally {
+            setIsSaving(false);
         }
     };
     
     const handleDelete = async () => {
         if (!itemToDelete) return;
+        setIsDeleting(true);
+        
         try {
             await onDeleteBankDetail(itemToDelete.id);
-            toast({ title: 'Cuenta eliminada' });
+            toast({ title: 'Cuenta eliminada', description: 'La cuenta bancaria ha sido eliminada exitosamente.' });
             setIsDeleteDialogOpen(false);
             setItemToDelete(null);
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'No se pudo eliminar la cuenta.' });
+        } finally {
+            setIsDeleting(false);
         }
+    };
+
+    const formatAccountNumber = (number: string) => {
+        // Formatear número de cuenta para mejor legibilidad
+        return number.replace(/(\d{4})(?=\d)/g, '$1 ');
     };
     
     return (
         <>
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                        <CardTitle>Cuentas Bancarias de SUMA</CardTitle>
-                        <CardDescription>Cuentas para recibir pagos de suscripciones.</CardDescription>
+            <Card className="border-primary/10">
+                <CardHeader className="pb-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div className="space-y-1">
+                            <CardTitle className="text-xl flex items-center gap-2">
+                                <Building2 className="h-5 w-5 text-primary" />
+                                Cuentas Bancarias de SUMA
+                            </CardTitle>
+                            <CardDescription className="text-base">
+                                Cuentas para recibir pagos de suscripciones.
+                            </CardDescription>
+                        </div>
+                        <Button onClick={() => openDialog(null)} className="shrink-0 w-full sm:w-auto">
+                            <PlusCircle className="mr-2 h-4 w-4"/>
+                            Añadir Cuenta
+                        </Button>
                     </div>
-                    <Button onClick={() => openDialog(null)}><PlusCircle className="mr-2 h-4 w-4"/>Añadir Cuenta</Button>
                 </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader><TableRow><TableHead>Banco</TableHead><TableHead>Titular</TableHead><TableHead>Número</TableHead><TableHead className="w-24 text-center">Acciones</TableHead></TableRow></TableHeader>
-                        <TableBody>
-                            {bankDetails.map(b => (
-                                <TableRow key={b.id}>
-                                    <TableCell>{b.bank}</TableCell>
-                                    <TableCell>{b.accountHolder}</TableCell>
-                                    <TableCell>{b.accountNumber}</TableCell>
-                                    <TableCell className="text-center space-x-2">
-                                        <Button variant="outline" size="icon" onClick={() => openDialog(b)}><Pencil className="h-4 w-4"/></Button>
-                                        <Button variant="destructive" size="icon" onClick={() => openDeleteDialog(b)}><Trash2 className="h-4 w-4"/></Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                             {bankDetails.length === 0 && (
-                                <TableRow><TableCell colSpan={4} className="h-24 text-center">No hay cuentas bancarias registradas.</TableCell></TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
+                
+                <CardContent className="space-y-4">
+                    {/* Vista móvil mejorada */}
+                    <div className="md:hidden space-y-3">
+                        {bankDetails.map(bank => (
+                            <div key={bank.id} className="p-4 border rounded-lg space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1 flex-1 min-w-0">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm font-medium text-muted-foreground">Banco:</span>
+                                            <span className="text-sm font-bold">{bank.bank}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm font-medium text-muted-foreground">Titular:</span>
+                                            <span className="text-sm font-medium truncate ml-2">{bank.accountHolder}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm font-medium text-muted-foreground">C.I./R.I.F.:</span>
+                                            <span className="text-sm font-mono">{bank.idNumber}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm font-medium text-muted-foreground">Número:</span>
+                                            <span className="text-sm font-mono">{formatAccountNumber(bank.accountNumber)}</span>
+                                        </div>
+                                        {bank.description && (
+                                            <div className="flex items-start justify-between">
+                                                <span className="text-sm font-medium text-muted-foreground">Descripción:</span>
+                                                <span className="text-sm text-muted-foreground truncate ml-2 max-w-32">{bank.description}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-end gap-2 pt-2 border-t">
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm"
+                                        onClick={() => openDialog(bank)}
+                                        className="h-8 px-3"
+                                    >
+                                        <Pencil className="h-3 w-3 mr-1"/>
+                                        Editar
+                                    </Button>
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm"
+                                        onClick={() => openDeleteDialog(bank)}
+                                        className="h-8 px-3 text-destructive hover:text-destructive"
+                                    >
+                                        <Trash2 className="h-3 w-3 mr-1"/>
+                                        Eliminar
+                                    </Button>
+                                </div>
+                            </div>
+                        ))}
+                        
+                        {bankDetails.length === 0 && (
+                            <div className="text-center py-8 text-muted-foreground">
+                                <Building2 className="h-8 w-8 mx-auto mb-2" />
+                                <p>No hay cuentas bancarias registradas</p>
+                                <p className="text-sm">Comienza añadiendo la primera cuenta</p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Tabla responsiva para desktop */}
+                    <div className="hidden md:block rounded-md border">
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Banco</TableHead>
+                                        <TableHead>Titular</TableHead>
+                                        <TableHead>C.I./R.I.F.</TableHead>
+                                        <TableHead>Número de Cuenta</TableHead>
+                                        <TableHead>Descripción</TableHead>
+                                        <TableHead className="w-24 text-center">Acciones</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {bankDetails.map(bank => (
+                                        <TableRow key={bank.id} className="hover:bg-muted/50">
+                                            <TableCell className="font-bold">{bank.bank}</TableCell>
+                                            <TableCell>{bank.accountHolder}</TableCell>
+                                            <TableCell className="font-mono">{bank.idNumber}</TableCell>
+                                            <TableCell className="font-mono">{formatAccountNumber(bank.accountNumber)}</TableCell>
+                                            <TableCell className="max-w-32">
+                                                <span className="truncate block" title={bank.description}>
+                                                    {bank.description || '-'}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                <div className="flex items-center justify-center gap-1">
+                                                    <Button 
+                                                        variant="outline" 
+                                                        size="icon" 
+                                                        onClick={() => openDialog(bank)}
+                                                        className="h-8 w-8"
+                                                    >
+                                                        <Pencil className="h-3 w-3"/>
+                                                    </Button>
+                                                    <Button 
+                                                        variant="outline" 
+                                                        size="icon" 
+                                                        onClick={() => openDeleteDialog(bank)}
+                                                        className="h-8 w-8 text-destructive hover:text-destructive"
+                                                    >
+                                                        <Trash2 className="h-3 w-3"/>
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                        
+                        {bankDetails.length === 0 && (
+                            <div className="text-center py-8 text-muted-foreground">
+                                <Building2 className="h-8 w-8 mx-auto mb-2" />
+                                <p>No hay cuentas bancarias registradas</p>
+                                <p className="text-sm">Comienza añadiendo la primera cuenta</p>
+                            </div>
+                        )}
+                    </div>
                 </CardContent>
             </Card>
 
+            {/* Diálogo de edición/creación mejorado */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent>
-                    <DialogHeader><DialogTitle>{editingBankDetail ? 'Editar Cuenta' : 'Nueva Cuenta'}</DialogTitle></DialogHeader>
-                    <form onSubmit={handleSave} className="space-y-4 py-4">
-                        <div><Label>Banco</Label><Input name="bankName" defaultValue={editingBankDetail?.bank}/></div>
-                        <div><Label>Titular</Label><Input name="holderName" defaultValue={editingBankDetail?.accountHolder}/></div>
-                        <div><Label>CI/RIF</Label><Input name="idNumber" defaultValue={editingBankDetail?.idNumber}/></div>
-                        <div><Label># Cuenta</Label><Input name="accountNumber" defaultValue={editingBankDetail?.accountNumber}/></div>
-                        <div><Label>Descripción</Label><Input name="description" defaultValue={editingBankDetail?.description || ''}/></div>
-                        <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Guardar</Button></DialogFooter>
+                <DialogContent className="sm:max-w-md max-w-[95vw] max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Building2 className="h-5 w-5" />
+                            {editingBankDetail ? 'Editar Cuenta' : 'Nueva Cuenta'}
+                        </DialogTitle>
+                    </DialogHeader>
+                    
+                    <form onSubmit={handleSave} className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="bankName" className="text-sm font-medium">
+                                Nombre del Banco <span className="text-red-500">*</span>
+                            </Label>
+                            <Input 
+                                id="bankName" 
+                                name="bankName" 
+                                defaultValue={editingBankDetail?.bank}
+                                required
+                                placeholder="Ej: Banco de Venezuela"
+                                className="h-10"
+                            />
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <Label htmlFor="holderName" className="text-sm font-medium">
+                                Nombre del Titular <span className="text-red-500">*</span>
+                            </Label>
+                            <Input 
+                                id="holderName" 
+                                name="holderName" 
+                                defaultValue={editingBankDetail?.accountHolder}
+                                required
+                                placeholder="Nombre completo del titular"
+                                className="h-10"
+                            />
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <Label htmlFor="idNumber" className="text-sm font-medium">
+                                C.I./R.I.F. <span className="text-red-500">*</span>
+                            </Label>
+                            <Input 
+                                id="idNumber" 
+                                name="idNumber" 
+                                defaultValue={editingBankDetail?.idNumber}
+                                required
+                                placeholder="Ej: V-12345678"
+                                className="h-10"
+                            />
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <Label htmlFor="accountNumber" className="text-sm font-medium">
+                                Número de Cuenta <span className="text-red-500">*</span>
+                            </Label>
+                            <Input 
+                                id="accountNumber" 
+                                name="accountNumber" 
+                                defaultValue={editingBankDetail?.accountNumber}
+                                required
+                                placeholder="20 dígitos"
+                                maxLength={20}
+                                className="h-10 font-mono"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                Ingresa solo los números, sin espacios ni guiones
+                            </p>
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <Label htmlFor="description" className="text-sm font-medium">
+                                Descripción (Opcional)
+                            </Label>
+                            <Textarea 
+                                id="description" 
+                                name="description" 
+                                defaultValue={editingBankDetail?.description || ''}
+                                placeholder="Descripción adicional de la cuenta"
+                                className="min-h-20"
+                            />
+                        </div>
+                        
+                        <DialogFooter className="flex flex-col sm:flex-row gap-2">
+                            <DialogClose asChild>
+                                <Button type="button" variant="outline" className="w-full sm:w-auto">
+                                    Cancelar
+                                </Button>
+                            </DialogClose>
+                            <Button type="submit" disabled={isSaving} className="w-full sm:w-auto">
+                                {isSaving ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Guardando...
+                                    </>
+                                ) : (
+                                    'Guardar'
+                                )}
+                            </Button>
+                        </DialogFooter>
                     </form>
                 </DialogContent>
             </Dialog>
             
+            {/* Diálogo de confirmación de eliminación mejorado */}
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader><AlertDialogTitle>Confirmar Eliminación</AlertDialogTitle><AlertDialogDescription>Esta acción es permanente. ¿Seguro que quieres eliminar esta cuenta?</AlertDialogDescription></AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete} className={cn(buttonVariants({variant: 'destructive'}))}>Sí, Eliminar</AlertDialogAction>
+                <AlertDialogContent className="max-w-[95vw] sm:max-w-md">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Confirmar eliminación</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            ¿Estás seguro de que quieres eliminar esta cuenta bancaria? 
+                            Esta acción no se puede deshacer.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="flex flex-col sm:flex-row gap-2">
+                        <AlertDialogCancel className="w-full sm:w-auto">Cancelar</AlertDialogCancel>
+                        <AlertDialogAction 
+                            onClick={handleDelete} 
+                            disabled={isDeleting}
+                            className="w-full sm:w-auto bg-destructive hover:bg-destructive/90"
+                        >
+                            {isDeleting ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Eliminando...
+                                </>
+                            ) : (
+                                'Eliminar'
+                            )}
+                        </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

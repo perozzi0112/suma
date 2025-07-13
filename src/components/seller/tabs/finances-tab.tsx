@@ -6,7 +6,7 @@ import type { Seller, Doctor, SellerPayment, Expense } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
-import { DollarSign, Wallet, TrendingDown, TrendingUp, ChevronLeft, ChevronRight, Eye, Landmark, PlusCircle, Pencil, Trash2 } from 'lucide-react';
+import { DollarSign, Wallet, TrendingDown, TrendingUp, ChevronLeft, ChevronRight, Eye, Landmark, PlusCircle, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { format, startOfDay, endOfDay, startOfWeek, endOfMonth, startOfMonth, endOfYear, startOfYear, getMonth, getYear, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useSettings } from '@/lib/settings';
@@ -35,9 +35,10 @@ const ExpenseFormSchema = z.object({
 interface FinancesTabProps {
   sellerData: Seller;
   sellerPayments: SellerPayment[];
+  onUpdate: () => void;
 }
 
-export function FinancesTab({ sellerData, sellerPayments }: FinancesTabProps) {
+export function FinancesTab({ sellerData, sellerPayments, onUpdate }: FinancesTabProps) {
   const { cities } = useSettings();
   const { toast } = useToast();
   const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month' | 'year' | 'all'>('month');
@@ -56,6 +57,7 @@ export function FinancesTab({ sellerData, sellerPayments }: FinancesTabProps) {
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const [isSavingExpense, setIsSavingExpense] = useState(false);
 
 
   useEffect(() => {
@@ -146,6 +148,7 @@ export function FinancesTab({ sellerData, sellerPayments }: FinancesTabProps) {
   const handleSaveExpense = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!sellerData) return;
+    setIsSavingExpense(true);
     const formData = new FormData(e.currentTarget);
     const dataToValidate = {
         description: formData.get('expenseDescription') as string,
@@ -156,6 +159,7 @@ export function FinancesTab({ sellerData, sellerPayments }: FinancesTabProps) {
 
     if (!result.success) {
         toast({ variant: 'destructive', title: 'Error de Validación', description: result.error.errors.map(err => err.message).join(' ') });
+        setIsSavingExpense(false);
         return;
     }
     
@@ -171,9 +175,18 @@ export function FinancesTab({ sellerData, sellerPayments }: FinancesTabProps) {
         updatedExpenses = [...(sellerData.expenses || []), newExpense];
     }
 
-    await firestoreService.updateSeller(sellerData.id, { expenses: updatedExpenses });
-    setIsExpenseDialogOpen(false);
-    toast({ title: "Gasto Guardado" });
+    try {
+        await firestoreService.updateSeller(sellerData.id, { expenses: updatedExpenses });
+        setIsExpenseDialogOpen(false);
+        setEditingExpense(null);
+        toast({ title: "Gasto Guardado", description: "El gasto ha sido registrado exitosamente." });
+        onUpdate(); // Refrescar los datos
+    } catch (error) {
+        console.error("Error saving expense:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar el gasto. Inténtalo de nuevo.' });
+    } finally {
+        setIsSavingExpense(false);
+    }
   };
 
   const handleDeleteExpense = async () => {
@@ -182,9 +195,13 @@ export function FinancesTab({ sellerData, sellerPayments }: FinancesTabProps) {
     await firestoreService.updateSeller(sellerData.id, { expenses: updatedExpenses });
     setIsDeleteDialogOpen(false);
     setItemToDelete(null);
-    toast({ title: "Gasto Eliminado" });
+    toast({ title: "Gasto Eliminado", description: "El gasto ha sido eliminado exitosamente." });
+    onUpdate(); // Refrescar los datos
   };
   
+  // NUEVO: Filtrar sellerPayments pendientes
+  const pendingPayments = useMemo(() => sellerPayments.filter(p => p.status === 'pending'), [sellerPayments]);
+
   return (
     <>
       <div className="space-y-8">
@@ -207,32 +224,48 @@ export function FinancesTab({ sellerData, sellerPayments }: FinancesTabProps) {
             <CardHeader>
                 <CardTitle>Desglose de Comisiones Pendientes</CardTitle>
                 <CardDescription>
-                    {financeStats.hasBeenPaidThisPeriod 
-                        ? `La comisión para el período de ${financeStats.currentPeriod} ya fue procesada.`
-                        : `Desglose de tu próxima comisión para el período de ${financeStats.currentPeriod}. El pago se realizará el ${financeStats.nextPaymentDate}.`
-                    }
+                    {pendingPayments.length > 0
+                        ? `Tienes ${pendingPayments.length} comisión(es) pendiente(s) de pago.`
+                        : `No tienes comisiones pendientes de pago.`}
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <Table>
-                    <TableHeader><TableRow><TableHead>Médico Activo</TableHead><TableHead>Fecha de Ingreso</TableHead><TableHead className="text-right">Comisión Estimada</TableHead></TableRow></TableHeader>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Período</TableHead>
+                            <TableHead>Médicos</TableHead>
+                            <TableHead className="text-right">Monto</TableHead>
+                        </TableRow>
+                    </TableHeader>
                     <TableBody>
-                        {financeStats.doctorsForPendingCommission.length > 0 ? (
-                            financeStats.doctorsForPendingCommission.map(doctor => (
-                                <TableRow key={doctor.id}>
-                                    <TableCell className="font-medium">{doctor.name}</TableCell>
-                                    <TableCell>{format(new Date(doctor.joinDate + 'T00:00:00'), "d MMM, yyyy", { locale: es })}</TableCell>
-                                    <TableCell className="text-right font-mono">${((cityFeesMap.get(doctor.city) || 0) * (sellerData?.commissionRate || 0)).toFixed(2)}</TableCell>
+                        {pendingPayments.length > 0 ? (
+                            pendingPayments.map(payment => (
+                                <TableRow key={payment.id}>
+                                    <TableCell className="font-medium">{payment.period}</TableCell>
+                                    <TableCell>
+                                        <ul className="list-disc ml-4">
+                                            {payment.includedDoctors.map((doc, index) => (
+                                                <li key={`${payment.id}-${doc.id}-${index}`}>{doc.name} <span className="text-xs text-muted-foreground">(${doc.commissionAmount.toFixed(2)})</span></li>
+                                            ))}
+                                        </ul>
+                                    </TableCell>
+                                    <TableCell className="text-right font-mono text-amber-600">${payment.amount.toFixed(2)}</TableCell>
                                 </TableRow>
                             ))
                         ) : (
-                            <TableRow><TableCell colSpan={3} className="h-24 text-center">{financeStats.hasBeenPaidThisPeriod ? "Comisión de este mes ya pagada." : "No tienes médicos activos para generar comisiones."}</TableCell></TableRow>
+                            <TableRow>
+                                <TableCell colSpan={3} className="h-24 text-center">No tienes comisiones pendientes.</TableCell>
+                            </TableRow>
                         )}
                     </TableBody>
                 </Table>
             </CardContent>
             <CardFooter className="justify-end font-bold bg-muted/50 py-3">
-                <div className="flex items-center gap-4 text-lg"><span>Total Pendiente:</span><span className="text-amber-600">${financeStats.pendingCommission.toFixed(2)}</span></div>
+                <div className="flex items-center gap-4 text-lg">
+                    <span>Total Pendiente:</span>
+                    <span className="text-amber-600">${pendingPayments.reduce((sum, p) => sum + p.amount, 0).toFixed(2)}</span>
+                </div>
             </CardFooter>
         </Card>
         <Card>
@@ -272,25 +305,69 @@ export function FinancesTab({ sellerData, sellerPayments }: FinancesTabProps) {
                 <Button onClick={() => handleOpenExpenseDialog(null)} className="w-full sm:w-auto"><PlusCircle className="mr-2 h-4 w-4"/> Agregar Gasto</Button>
             </CardHeader>
             <CardContent>
-                <Table>
-                    <TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead>Descripción</TableHead><TableHead className="text-right">Monto</TableHead><TableHead className="w-[120px] text-center">Acciones</TableHead></TableRow></TableHeader>
-                    <TableBody>
-                        {paginatedSellerExpenses.length > 0 ? paginatedSellerExpenses.map(expense => (
-                            <TableRow key={expense.id}>
-                                <TableCell>{format(new Date(expense.date + 'T00:00:00'), 'dd/MM/yyyy', { locale: es })}</TableCell>
-                                <TableCell className="font-medium">{expense.description}</TableCell>
-                                <TableCell className="text-right font-mono">${expense.amount.toFixed(2)}</TableCell>
-                                <TableCell className="text-center"><div className="flex items-center justify-center gap-2">
-                                        <Button variant="outline" size="icon" onClick={() => handleOpenExpenseDialog(expense)}><Pencil className="h-4 w-4" /></Button>
-                                        <Button variant="destructive" size="icon" onClick={() => {setItemToDelete(expense.id); setIsDeleteDialogOpen(true);}}><Trash2 className="h-4 w-4" /></Button>
-                                </div></TableCell>
-                            </TableRow>
-                        )) : (<TableRow><TableCell colSpan={4} className="text-center h-24">No hay gastos registrados en este período.</TableCell></TableRow>)}
-                    </TableBody>
-                </Table>
+                {/* Vista de escritorio */}
+                <div className="hidden md:block">
+                    <Table>
+                        <TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead>Descripción</TableHead><TableHead className="text-right">Monto</TableHead><TableHead className="w-[120px] text-center">Acciones</TableHead></TableRow></TableHeader>
+                        <TableBody>
+                            {paginatedSellerExpenses.length > 0 ? paginatedSellerExpenses.map(expense => (
+                                <TableRow key={expense.id}>
+                                    <TableCell>{format(new Date(expense.date + 'T00:00:00'), 'dd/MM/yyyy', { locale: es })}</TableCell>
+                                    <TableCell className="font-medium">{expense.description}</TableCell>
+                                    <TableCell className="text-right font-mono">${expense.amount.toFixed(2)}</TableCell>
+                                    <TableCell className="text-center"><div className="flex items-center justify-center gap-2">
+                                            <Button variant="outline" size="icon" onClick={() => handleOpenExpenseDialog(expense)}><Pencil className="h-4 w-4" /></Button>
+                                            <Button variant="destructive" size="icon" onClick={() => {setItemToDelete(expense.id); setIsDeleteDialogOpen(true);}}><Trash2 className="h-4 w-4" /></Button>
+                                    </div></TableCell>
+                                </TableRow>
+                            )) : (<TableRow><TableCell colSpan={4} className="text-center h-24">No hay gastos registrados en este período.</TableCell></TableRow>)}
+                        </TableBody>
+                    </Table>
+                </div>
+
+                {/* Vista móvil */}
+                <div className="space-y-3 md:hidden">
+                    {paginatedSellerExpenses.length > 0 ? paginatedSellerExpenses.map(expense => (
+                        <div key={expense.id} className="p-4 border rounded-lg space-y-3">
+                            <div className="flex justify-between items-start gap-2">
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="font-semibold text-sm truncate">{expense.description}</h3>
+                                    <p className="text-xs text-muted-foreground">
+                                        {format(new Date(expense.date + 'T00:00:00'), 'dd/MM/yyyy', { locale: es })}
+                                    </p>
+                                </div>
+                                <p className="text-lg font-bold font-mono text-red-600">${expense.amount.toFixed(2)}</p>
+                            </div>
+                            <div className="flex items-center justify-center gap-2">
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => handleOpenExpenseDialog(expense)}
+                                    className="flex-1"
+                                >
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Editar
+                                </Button>
+                                <Button 
+                                    variant="destructive" 
+                                    size="sm" 
+                                    onClick={() => {setItemToDelete(expense.id); setIsDeleteDialogOpen(true);}}
+                                    className="flex-1"
+                                >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Eliminar
+                                </Button>
+                            </div>
+                        </div>
+                    )) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                            No hay gastos registrados en este período.
+                        </div>
+                    )}
+                </div>
             </CardContent>
-            <CardFooter className="flex items-center justify-between">
-                <div className="text-sm text-muted-foreground">Página {expensePage} de {totalExpensePages}</div>
+            <CardFooter className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="text-sm text-muted-foreground text-center sm:text-left">Página {expensePage} de {totalExpensePages}</div>
                 <div className="flex items-center gap-2">
                     <Select value={String(expenseItemsPerPage)} onValueChange={(value) => { setExpenseItemsPerPage(Number(value)); setExpensePage(1); }}>
                         <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
@@ -320,7 +397,7 @@ export function FinancesTab({ sellerData, sellerPayments }: FinancesTabProps) {
                 <h4 className="font-semibold mb-2">Desglose de la Comisión</h4>
                 <Table><TableHeader><TableRow><TableHead>Médico</TableHead><TableHead className="text-right">Comisión Generada</TableHead></TableRow></TableHeader>
                   <TableBody>
-                    {selectedPayment.includedDoctors.map(doc => (<TableRow key={doc.id}><TableCell>{doc.name}</TableCell><TableCell className="text-right font-mono">${doc.commissionAmount.toFixed(2)}</TableCell></TableRow>))}
+                    {selectedPayment.includedDoctors.map((doc, index) => (<TableRow key={`${selectedPayment.id}-${doc.id}-${index}`}><TableCell>{doc.name}</TableCell><TableCell className="text-right font-mono">${doc.commissionAmount.toFixed(2)}</TableCell></TableRow>))}
                   </TableBody>
                   <TableFooter><TableRow><TableCell className="font-bold">Total Recibido</TableCell><TableCell className="text-right font-bold text-green-600 text-lg font-mono">${selectedPayment.amount.toFixed(2)}</TableCell></TableRow></TableFooter>
                 </Table>
@@ -331,17 +408,59 @@ export function FinancesTab({ sellerData, sellerPayments }: FinancesTabProps) {
         </DialogContent>
       </Dialog>
       <Dialog open={isExpenseDialogOpen} onOpenChange={setIsExpenseDialogOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{editingExpense ? "Editar Gasto" : "Agregar Nuevo Gasto"}</DialogTitle><DialogDescription>Registra un nuevo gasto para llevar un control financiero.</DialogDescription></DialogHeader>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>{editingExpense ? "Editar Gasto" : "Agregar Nuevo Gasto"}</DialogTitle>
+            <DialogDescription>
+              {editingExpense ? "Modifica los detalles del gasto seleccionado." : "Registra un nuevo gasto para llevar un control financiero."}
+            </DialogDescription>
+          </DialogHeader>
           <form onSubmit={handleSaveExpense}>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="expenseDate" className="text-right">Fecha</Label><Input id="expenseDate" name="expenseDate" type="date" defaultValue={editingExpense?.date || new Date().toISOString().split('T')[0]} className="col-span-3" /></div>
-              <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="expenseDescription" className="text-right">Descripción</Label><Input name="expenseDescription" defaultValue={editingExpense?.description} className="col-span-3" /></div>
-              <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="expenseAmount" className="text-right">Monto ($)</Label><Input name="expenseAmount" type="number" defaultValue={editingExpense?.amount} className="col-span-3" /></div>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="expenseDate">Fecha del Gasto</Label>
+                <Input 
+                  id="expenseDate" 
+                  name="expenseDate" 
+                  type="date" 
+                  defaultValue={editingExpense?.date || new Date().toISOString().split('T')[0]} 
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="expenseDescription">Descripción del Gasto</Label>
+                <Input 
+                  id="expenseDescription"
+                  name="expenseDescription" 
+                  placeholder="Ej: Combustible, Materiales de oficina, etc."
+                  defaultValue={editingExpense?.description} 
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="expenseAmount">Monto ($)</Label>
+                <Input 
+                  id="expenseAmount"
+                  name="expenseAmount" 
+                  type="number" 
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  defaultValue={editingExpense?.amount} 
+                  required
+                />
+              </div>
             </div>
-            <DialogFooter>
-              <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
-              <Button type="submit">Guardar Gasto</Button>
+            <DialogFooter className="flex flex-col sm:flex-row gap-2">
+              <DialogClose asChild>
+                <Button type="button" variant="outline" className="w-full sm:w-auto">
+                  Cancelar
+                </Button>
+              </DialogClose>
+              <Button type="submit" className="w-full sm:w-auto" disabled={isSavingExpense}>
+                {isSavingExpense && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {editingExpense ? "Actualizar Gasto" : "Guardar Gasto"}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>

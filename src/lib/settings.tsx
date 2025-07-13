@@ -58,7 +58,59 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
+        console.log('🔍 Fetching settings...');
         let settingsData = await firestoreService.getSettings();
+        console.log('📋 Settings data received:', settingsData);
+
+        // Si no existe configuración, crear configuración por defecto
+        if (!settingsData) {
+            console.log('❌ No settings found, creating default settings...');
+            const defaultSettings = {
+                cities: [
+                    { name: 'Caracas', subscriptionFee: 50 },
+                    { name: 'Valencia', subscriptionFee: 45 },
+                    { name: 'Maracaibo', subscriptionFee: 40 }
+                ],
+                specialties: [
+                    'Cardiología',
+                    'Dermatología',
+                    'Ginecología',
+                    'Ortopedia',
+                    'Pediatría',
+                    'Psicología'
+                ],
+                beautySpecialties: [
+                    'Dermatología',
+                    'Cirugía Plástica'
+                ],
+                coupons: [
+                    {
+                        id: 'welcome-2024',
+                        code: 'WELCOME2024',
+                        discount: 20,
+                        type: 'percentage',
+                        validFrom: new Date('2024-01-01'),
+                        validTo: new Date('2024-12-31'),
+                        maxUses: 100,
+                        currentUses: 0,
+                        isActive: true
+                    }
+                ],
+                companyBankDetails: [],
+                companyExpenses: [],
+                currency: 'USD',
+                timezone: 'America/Caracas',
+                logoUrl: '',
+                heroImageUrl: '',
+                billingCycleStartDay: 1,
+                billingCycleEndDay: 6
+            };
+            
+            await firestoreService.updateSettings(defaultSettings);
+            settingsData = await firestoreService.getSettings();
+            console.log('✅ Default settings created:', settingsData);
+            toast({ title: "Configuración Creada", description: "Se ha creado la configuración inicial del sistema." });
+        }
 
         if (settingsData && (!settingsData.coupons || !settingsData.companyExpenses || !settingsData.companyBankDetails)) {
             const settingsUpdate: Partial<AppSettings> = {};
@@ -95,9 +147,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
             }
         }
 
+        console.log('✅ Final settings data:', settingsData);
         setSettings(settingsData);
     } catch (error) {
-        console.error("Failed to fetch settings:", error);
+        console.error("❌ Failed to fetch settings:", error);
         toast({ variant: 'destructive', title: "Error de Carga", description: "No se pudo cargar la configuración."});
     } finally {
         setIsLoading(false);

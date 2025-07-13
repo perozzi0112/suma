@@ -2,7 +2,7 @@
 "use client";
 export const dynamic = 'force-dynamic';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { HeaderWrapper, BottomNav } from '@/components/header';
@@ -24,9 +24,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { User, Save, Lock } from 'lucide-react';
+import { User, Save, Lock, Camera, Upload, X } from 'lucide-react';
 import { z } from 'zod';
 import { useSettings } from '@/lib/settings';
+import Image from 'next/image';
+import { NotificationSettings } from '@/components/notification-settings';
 
 const PatientProfileSchema = z.object({
   fullName: z.string().min(3, "El nombre completo es requerido."),
@@ -56,6 +58,7 @@ export default function ProfilePage() {
   const { cities } = useSettings();
   const router = useRouter();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // State for profile info
   const [fullName, setFullName] = useState('');
@@ -70,19 +73,93 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
+  // State for profile image
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
   useEffect(() => {
     if (user === undefined) return;
     if (user === null) {
       router.push('/auth/login');
     } else {
+      console.log('Cargando datos del usuario en perfil:', user);
       setFullName(user.name);
       setAge(user.age ? String(user.age) : '');
       setGender(user.gender || '');
       setCedula(user.cedula || '');
       setPhone(user.phone || '');
       setCity(user.city || '');
+      setProfileImage(user.profileImage);
+      
+      console.log('Datos cargados en el formulario:', {
+        name: user.name,
+        age: user.age,
+        gender: user.gender,
+        cedula: user.cedula,
+        phone: user.phone,
+        city: user.city
+      });
     }
   }, [user, router]);
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validar tipo de archivo
+    if (!file.type.startsWith('image/')) {
+      toast({
+        variant: 'destructive',
+        title: 'Tipo de archivo no válido',
+        description: 'Por favor selecciona una imagen (JPG, PNG, etc.)',
+      });
+      return;
+    }
+
+    // Validar tamaño (máximo 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        variant: 'destructive',
+        title: 'Archivo demasiado grande',
+        description: 'La imagen debe ser menor a 5MB',
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setProfileImage(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleImageSave = async () => {
+    if (!profileImage || !user) return;
+
+    setIsUploading(true);
+    try {
+      await updateUser({ profileImage });
+      toast({
+        title: 'Foto de perfil actualizada',
+        description: 'Tu foto de perfil ha sido guardada correctamente.',
+      });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo actualizar la foto de perfil.',
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const removeProfileImage = () => {
+    setProfileImage(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   const handleProfileSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -167,6 +244,99 @@ export default function ProfilePage() {
       <HeaderWrapper />
       <main className="flex-1 flex items-center justify-center py-12 bg-muted/40 pb-20 md:pb-12">
         <div className="container max-w-2xl space-y-8">
+          {/* Foto de Perfil */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-2xl font-headline">
+                <Camera /> Foto de Perfil
+              </CardTitle>
+              <CardDescription>
+                Personaliza tu foto de perfil para que los médicos te reconozcan mejor.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col items-center space-y-6">
+                {/* Preview de la imagen */}
+                <div className="relative">
+                  <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-primary/20 bg-muted">
+                    {profileImage ? (
+                      <Image
+                        src={profileImage}
+                        alt="Foto de perfil"
+                        width={128}
+                        height={128}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-muted">
+                        <User className="w-16 h-16 text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Botón para remover imagen */}
+                  {profileImage && (
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute -top-2 -right-2 w-8 h-8 rounded-full"
+                      onClick={removeProfileImage}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+
+                {/* Controles de subida */}
+                <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
+                  <Button
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex-1"
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Elegir Foto
+                  </Button>
+                  
+                  {profileImage && (
+                    <Button
+                      onClick={handleImageSave}
+                      disabled={isUploading}
+                      className="flex-1"
+                    >
+                      {isUploading ? (
+                        <>
+                          <div className="w-4 h-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                          Guardando...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4 mr-2" />
+                          Guardar
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+
+                {/* Input oculto para subir archivo */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+
+                {/* Información de ayuda */}
+                <div className="text-center text-sm text-muted-foreground">
+                  <p>Formatos soportados: JPG, PNG, GIF</p>
+                  <p>Tamaño máximo: 5MB</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-2xl font-headline">
@@ -294,6 +464,15 @@ export default function ProfilePage() {
               </form>
             </CardContent>
           </Card>
+
+          {/* Sección de Notificaciones */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Notificaciones</h3>
+            <NotificationSettings 
+              userId={user?.id || ''} 
+              userRole={user?.role || 'patient'} 
+            />
+          </div>
 
         </div>
       </main>

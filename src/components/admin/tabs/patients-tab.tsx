@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import type { Patient, Appointment } from "@/lib/types";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
@@ -231,19 +231,100 @@ export function PatientsTab() {
         </DialogContent>
       </Dialog>
       <Dialog open={isPatientEditDialogOpen} onOpenChange={setIsPatientEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Editar Paciente</DialogTitle><DialogDescription>Actualiza la información del paciente {editingPatient?.name}.</DialogDescription></DialogHeader>
+        <DialogContent className="sm:max-w-md md:max-w-lg lg:max-w-xl w-[95vw] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-lg md:text-xl">Editar Paciente</DialogTitle>
+            <DialogDescription className="text-sm md:text-base">
+              Actualiza la información del paciente {editingPatient?.name}.
+            </DialogDescription>
+          </DialogHeader>
           <form onSubmit={handleSavePatient}>
             <div className="space-y-4 py-4">
-              <div><Label htmlFor="patient-name">Nombre Completo</Label><Input id="patient-name" name="name" defaultValue={editingPatient?.name} required /></div>
-              <div><Label htmlFor="patient-email">Correo Electrónico</Label><Input id="patient-email" name="email" type="email" defaultValue={editingPatient?.email} required /></div>
-              <div><Label htmlFor="patient-cedula">Cédula</Label><Input id="patient-cedula" name="cedula" defaultValue={editingPatient?.cedula || ''} /></div>
-              <div><Label htmlFor="patient-phone">Teléfono</Label><Input id="patient-phone" name="phone" defaultValue={editingPatient?.phone || ''} /></div>
-              <div><Label htmlFor="patient-password">Nueva Contraseña</Label><Input id="patient-password" name="password" type="password" placeholder="Dejar en blanco para no cambiar" /></div>
-              <div><Label htmlFor="patient-confirm-password">Confirmar Contraseña</Label><Input id="patient-confirm-password" name="confirmPassword" type="password" placeholder="Repite la contraseña" /></div>
-               <p className="text-xs text-muted-foreground">Mínimo 8 caracteres, con mayúsculas, minúsculas y números.</p>
+              <div className="space-y-2">
+                <Label htmlFor="patient-name" className="text-sm font-medium">Nombre Completo</Label>
+                <Input 
+                  id="patient-name" 
+                  name="name" 
+                  defaultValue={editingPatient?.name} 
+                  required 
+                  className="w-full"
+                  placeholder="Ingresa el nombre completo"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="patient-email" className="text-sm font-medium">Correo Electrónico</Label>
+                <Input 
+                  id="patient-email" 
+                  name="email" 
+                  type="email" 
+                  defaultValue={editingPatient?.email} 
+                  required 
+                  className="w-full"
+                  placeholder="ejemplo@email.com"
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="patient-cedula" className="text-sm font-medium">Cédula</Label>
+                  <Input 
+                    id="patient-cedula" 
+                    name="cedula" 
+                    defaultValue={editingPatient?.cedula || ''} 
+                    className="w-full"
+                    placeholder="Número de cédula"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="patient-phone" className="text-sm font-medium">Teléfono</Label>
+                  <Input 
+                    id="patient-phone" 
+                    name="phone" 
+                    defaultValue={editingPatient?.phone || ''} 
+                    className="w-full"
+                    placeholder="Número de teléfono"
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="patient-password" className="text-sm font-medium">Nueva Contraseña</Label>
+                <Input 
+                  id="patient-password" 
+                  name="password" 
+                  type="password" 
+                  placeholder="Dejar en blanco para no cambiar"
+                  className="w-full"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Mínimo 8 caracteres, con mayúsculas, minúsculas y números.
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="patient-confirm-password" className="text-sm font-medium">Confirmar Contraseña</Label>
+                <Input 
+                  id="patient-confirm-password" 
+                  name="confirmPassword" 
+                  type="password" 
+                  placeholder="Repite la contraseña"
+                  className="w-full"
+                />
+              </div>
             </div>
-            <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Guardar Cambios</Button></DialogFooter>
+            
+            <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0">
+              <DialogClose asChild>
+                <Button type="button" variant="outline" className="w-full sm:w-auto">
+                  Cancelar
+                </Button>
+              </DialogClose>
+              <Button type="submit" className="w-full sm:w-auto">
+                Guardar Cambios
+              </Button>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
@@ -257,7 +338,7 @@ export function PatientsTab() {
             </AlertDialogHeader>
             <AlertDialogFooter>
                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDeleteItem} className={cn(buttonVariants({ variant: 'destructive' }))}>
+                <AlertDialogAction onClick={handleDeleteItem} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                     Sí, Eliminar
                 </AlertDialogAction>
             </AlertDialogFooter>

@@ -42,6 +42,19 @@ export function SellerNotificationProvider({ children }: { children: ReactNode }
     }
   }, [user]);
 
+  // Limpiar notificaciones de otros usuarios cuando cambie el usuario
+  useEffect(() => {
+    if (user?.id && user.role === 'seller') {
+      // Limpiar notificaciones de otros usuarios
+      const allKeys = Object.keys(localStorage);
+      const sellerNotificationKeys = allKeys.filter(key => 
+        key.startsWith('suma-seller-notifications-') && 
+        key !== getNotificationStorageKey(user.id)
+      );
+      sellerNotificationKeys.forEach(key => localStorage.removeItem(key));
+    }
+  }, [user]);
+
   const checkAndSetSellerNotifications = useCallback((
       sellerPayments: SellerPayment[],
       supportTickets: AdminSupportTicket[],
@@ -55,8 +68,9 @@ export function SellerNotificationProvider({ children }: { children: ReactNode }
     
     const existingIds = new Set(sellerNotifications.map(n => n.id));
 
-    // 1. New Doctor Registered
-    referredDoctors.forEach(doc => {
+    // 1. New Doctor Registered - Solo doctores referidos por este vendedor
+    const sellerReferredDoctors = referredDoctors.filter(doc => doc.sellerId === user.id);
+    sellerReferredDoctors.forEach(doc => {
         if (!doc.readBySeller) {
             const id = `new-doctor-${doc.id}`;
             if (!existingIds.has(id)) {
@@ -74,8 +88,9 @@ export function SellerNotificationProvider({ children }: { children: ReactNode }
         }
     });
 
-    // 2. Payment Processed
-    sellerPayments.forEach(payment => {
+    // 2. Payment Processed - Solo pagos de este vendedor
+    const sellerPaymentsFiltered = sellerPayments.filter(payment => payment.sellerId === user.id);
+    sellerPaymentsFiltered.forEach(payment => {
         if (!payment.readBySeller) {
             const id = `payment-processed-${payment.id}`;
             if (!existingIds.has(id)) {
@@ -93,9 +108,12 @@ export function SellerNotificationProvider({ children }: { children: ReactNode }
         }
     });
 
-    // 3. Support Ticket Replies
-    supportTickets.forEach(ticket => {
-        if (ticket.userRole === 'seller' && ticket.userId === user.email && !ticket.readBySeller) {
+    // 3. Support Ticket Replies - Solo tickets de este vendedor
+    const sellerSupportTickets = supportTickets.filter(ticket => 
+        ticket.userRole === 'seller' && ticket.userId === user.email
+    );
+    sellerSupportTickets.forEach(ticket => {
+        if (!ticket.readBySeller) {
              const lastMessage = ticket.messages?.slice(-1)[0];
              if (lastMessage?.sender === 'admin') {
                 const id = `support-reply-${ticket.id}-${lastMessage.id}`;

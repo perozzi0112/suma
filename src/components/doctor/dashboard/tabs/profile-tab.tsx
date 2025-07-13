@@ -2,42 +2,88 @@
 "use client";
 
 import { useState } from 'react';
-import type { Doctor } from '@/lib/types';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { z } from 'zod';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import Image from 'next/image';
-import { z } from 'zod';
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from '@/hooks/use-toast';
 import * as firestoreService from '@/lib/firestoreService';
+import type { Doctor } from '@/lib/types';
+import { Upload, X, Loader2 } from 'lucide-react';
+import Image from 'next/image';
 
 const DoctorProfileSchema = z.object({
-  name: z.string().min(3, "El nombre es requerido."),
-  cedula: z.string().min(6, "La cédula es requerida.").optional().or(z.literal('')),
-  whatsapp: z.string().min(10, "El WhatsApp es requerido.").optional().or(z.literal('')),
-  address: z.string().min(5, "La dirección es requerida."),
-  sector: z.string().min(3, "El sector es requerido."),
+  name: z.string().min(3, "El nombre debe tener al menos 3 caracteres."),
+  cedula: z.string().min(1, "La cédula es requerida."),
+  whatsapp: z.string().optional(),
+  address: z.string().min(5, "La dirección debe tener al menos 5 caracteres."),
+  sector: z.string().min(1, "El sector es requerido."),
   consultationFee: z.preprocess((val) => Number(val), z.number().min(0, "La tarifa no puede ser negativa.")),
-  slotDuration: z.preprocess((val) => Number(val), z.number().min(5, "La duración debe ser al menos 5 minutos.")),
-  description: z.string().min(20, "La descripción debe tener al menos 20 caracteres."),
+  slotDuration: z.preprocess((val) => Number(val), z.number().int().min(5, "La duración debe ser al menos 5 min.").positive()),
+  description: z.string().min(10, "La descripción debe tener al menos 10 caracteres."),
 });
-
-const fileToDataUri = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
-};
 
 interface ProfileTabProps {
   doctorData: Doctor;
   onProfileUpdate: () => void;
-  onPasswordChange: () => void;
+  onPasswordChange: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
 }
+
+// Función para comprimir imagen antes de convertir a base64
+const compressImage = (file: File, maxSizeKB: number = 100): Promise<string> => {
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new window.Image();
+    
+    img.onload = () => {
+      // Calcular nuevas dimensiones manteniendo proporción
+      let { width, height } = img;
+      const maxDimension = maxSizeKB > 200 ? 800 : 400; // Dimensiones máximas
+      
+      if (width > height) {
+        if (width > maxDimension) {
+          height = (height * maxDimension) / width;
+          width = maxDimension;
+        }
+      } else {
+        if (height > maxDimension) {
+          width = (width * maxDimension) / height;
+          height = maxDimension;
+        }
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      
+      // Dibujar imagen redimensionada
+      ctx?.drawImage(img, 0, 0, width, height);
+      
+      // Convertir a base64 con calidad reducida
+      const quality = maxSizeKB > 200 ? 0.7 : 0.8;
+      const dataUrl = canvas.toDataURL('image/jpeg', quality);
+      
+      // Si aún es muy grande, reducir más la calidad
+      if (dataUrl.length > maxSizeKB * 1024) {
+        const reducedQuality = quality * 0.8;
+        const reducedDataUrl = canvas.toDataURL('image/jpeg', reducedQuality);
+        resolve(reducedDataUrl);
+      } else {
+        resolve(dataUrl);
+      }
+    };
+    
+    img.src = URL.createObjectURL(file);
+  });
+};
+
+const fileToDataUri = async (file: File): Promise<string> => {
+  // Comprimir imagen antes de convertir
+  const maxSizeKB = file.name.includes('banner') ? 200 : 100; // Banner puede ser más grande
+  return await compressImage(file, maxSizeKB);
+};
 
 export function ProfileTab({ doctorData, onProfileUpdate, onPasswordChange }: ProfileTabProps) {
   const { toast } = useToast();
@@ -47,38 +93,70 @@ export function ProfileTab({ doctorData, onProfileUpdate, onPasswordChange }: Pr
   const handleSaveProfile = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!doctorData) return;
-    const formData = new FormData(e.currentTarget);
-    const dataToValidate = {
-      name: formData.get('name') as string,
-      cedula: formData.get('cedula') as string,
-      whatsapp: formData.get('whatsapp') as string,
-      address: formData.get('address') as string,
-      sector: formData.get('sector') as string,
-      consultationFee: formData.get('consultationFee') as string,
-      slotDuration: formData.get('slotDuration') as string,
-      description: formData.get('description') as string,
-    };
-
-    const result = DoctorProfileSchema.safeParse(dataToValidate);
-    if (!result.success) {
-        toast({ variant: 'destructive', title: 'Error de Validación', description: result.error.errors.map(err => err.message).join(' ') });
-        return;
-    }
     
-    let profileImageUrl = doctorData.profileImage;
-    if (profileImageFile) { 
-        profileImageUrl = await fileToDataUri(profileImageFile);
-    }
-    
-    let bannerImageUrl = doctorData.bannerImage;
-    if (bannerImageFile) {
-        bannerImageUrl = await fileToDataUri(bannerImageFile);
-    }
+    try {
+      const formData = new FormData(e.currentTarget);
+      const dataToValidate = {
+        name: formData.get('name') as string,
+        cedula: formData.get('cedula') as string,
+        whatsapp: formData.get('whatsapp') as string,
+        address: formData.get('address') as string,
+        sector: formData.get('sector') as string,
+        consultationFee: formData.get('consultationFee') as string,
+        slotDuration: formData.get('slotDuration') as string,
+        description: formData.get('description') as string,
+      };
 
-    await firestoreService.updateDoctor(doctorData.id, {...result.data, profileImage: profileImageUrl, bannerImage: bannerImageUrl});
-    toast({ title: 'Perfil Actualizado' });
-    onProfileUpdate();
-  }
+      const result = DoctorProfileSchema.safeParse(dataToValidate);
+      if (!result.success) {
+          toast({ variant: 'destructive', title: 'Error de Validación', description: result.error.errors.map(err => err.message).join(' ') });
+          return;
+      }
+      
+      let profileImageUrl = doctorData.profileImage;
+      if (profileImageFile) { 
+          profileImageUrl = await fileToDataUri(profileImageFile);
+      }
+      
+      let bannerImageUrl = doctorData.bannerImage;
+      if (bannerImageFile) {
+          bannerImageUrl = await fileToDataUri(bannerImageFile);
+      }
+
+      await firestoreService.updateDoctor(doctorData.id, {...result.data, profileImage: profileImageUrl, bannerImage: bannerImageUrl});
+      toast({ title: 'Perfil Actualizado' });
+      onProfileUpdate();
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
+      
+      // Si el error es por tamaño del documento, intentar limpiar datos
+      if (error.message?.includes('size') || error.code === 'resource-exhausted') {
+        toast({ 
+          variant: 'destructive', 
+          title: 'Error de Tamaño', 
+          description: 'El documento es muy grande. Se intentará limpiar datos antiguos automáticamente.' 
+        });
+        
+        try {
+          await firestoreService.cleanupDoctorData(doctorData.id);
+          toast({ title: 'Datos Limpiados', description: 'Se han limpiado datos antiguos. Intenta guardar nuevamente.' });
+          onProfileUpdate(); // Refrescar datos
+        } catch (cleanupError) {
+          toast({ 
+            variant: 'destructive', 
+            title: 'Error Crítico', 
+            description: 'No se pudo limpiar el documento. Contacta al administrador.' 
+          });
+        }
+      } else {
+        toast({ 
+          variant: 'destructive', 
+          title: 'Error', 
+          description: 'No se pudo actualizar el perfil. Intenta nuevamente.' 
+        });
+      }
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -110,7 +188,7 @@ export function ProfileTab({ doctorData, onProfileUpdate, onPasswordChange }: Pr
       </Card>
       <Card>
         <CardHeader><CardTitle>Seguridad</CardTitle><CardDescription>Cambia tu contraseña.</CardDescription></CardHeader>
-        <CardContent><Button onClick={onPasswordChange}>Cambiar Contraseña</Button></CardContent>
+        <CardContent><Button onClick={() => onPasswordChange('', '')}>Cambiar Contraseña</Button></CardContent>
       </Card>
     </div>
   );

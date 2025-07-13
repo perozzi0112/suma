@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { MarketingMaterial as MarketingMaterialType } from '@/lib/types';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -170,16 +170,23 @@ export function MarketingTab() {
       </Card>
       
       <Dialog open={isMarketingDialogOpen} onOpenChange={setIsMarketingDialogOpen}>
-        <DialogContent className="sm:max-w-[625px]">
+        <DialogContent className="w-[95vw] max-w-[625px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingMaterial ? "Editar Material" : "Añadir Nuevo Material"}</DialogTitle>
             <DialogDescription>Completa la información del recurso de marketing.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSaveMaterial}>
             <div className="grid gap-4 py-4">
-              <div><Label htmlFor="title">Título</Label><Input id="title" name="title" defaultValue={editingMaterial?.title} /></div>
-              <div><Label htmlFor="description">Descripción Detallada</Label><Textarea id="description" name="description" defaultValue={editingMaterial?.description} rows={4} /></div>
-              <div><Label htmlFor="type">Tipo de Material</Label>
+              <div className="space-y-2">
+                <Label htmlFor="title">Título</Label>
+                <Input id="title" name="title" defaultValue={editingMaterial?.title} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">Descripción Detallada</Label>
+                <Textarea id="description" name="description" defaultValue={editingMaterial?.description} rows={4} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="type">Tipo de Material</Label>
                 <Select name="type" defaultValue={editingMaterial?.type || 'image'}>
                   <SelectTrigger><SelectValue/></SelectTrigger>
                   <SelectContent>
@@ -205,9 +212,11 @@ export function MarketingTab() {
                 <Input id="thumbnailFile" type="file" onChange={(e) => setThumbnailFile(e.target.files?.[0] || null)}/>
               </div>
             </div>
-            <DialogFooter>
-              <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
-              <Button type="submit" disabled={isSavingMaterial}>
+            <DialogFooter className="flex flex-col sm:flex-row gap-2">
+              <DialogClose asChild>
+                <Button type="button" variant="outline" className="w-full sm:w-auto">Cancelar</Button>
+              </DialogClose>
+              <Button type="submit" disabled={isSavingMaterial} className="w-full sm:w-auto">
                 {isSavingMaterial && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Guardar
               </Button>
@@ -226,7 +235,7 @@ export function MarketingTab() {
               </AlertDialogHeader>
               <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteItem} className={cn(buttonVariants({ variant: 'destructive' }))}>
+                  <AlertDialogAction onClick={handleDeleteItem} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                       Sí, Eliminar
                   </AlertDialogAction>
               </AlertDialogFooter>

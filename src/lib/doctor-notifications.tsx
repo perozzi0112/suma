@@ -49,6 +49,19 @@ export function DoctorNotificationProvider({ children }: { children: ReactNode }
     }
   }, [user]);
 
+  // Limpiar notificaciones de otros usuarios cuando cambie el usuario
+  useEffect(() => {
+    if (user?.id && user.role === 'doctor') {
+      // Limpiar notificaciones de otros usuarios
+      const allKeys = Object.keys(localStorage);
+      const doctorNotificationKeys = allKeys.filter(key => 
+        key.startsWith('suma-doctor-notifications-') && 
+        key !== getNotificationStorageKey(user.id)
+      );
+      doctorNotificationKeys.forEach(key => localStorage.removeItem(key));
+    }
+  }, [user]);
+
   const checkAndSetDoctorNotifications = useCallback((
     appointments: Appointment[], 
     supportTickets: AdminSupportTicket[],
@@ -118,8 +131,9 @@ export function DoctorNotificationProvider({ children }: { children: ReactNode }
       }
     });
 
-    // 5. Subscription payment update from admin
-    doctorPayments.forEach(payment => {
+    // 5. Subscription payment update from admin - Solo pagos de este doctor
+    const doctorPaymentsFiltered = doctorPayments.filter(payment => payment.doctorId === user.id);
+    doctorPaymentsFiltered.forEach(payment => {
         if ((payment.status === 'Paid' || payment.status === 'Rejected') && !payment.readByDoctor) {
             const id = `sub-${payment.id}-${payment.status}`;
             if (!existingIds.has(id)) {
@@ -134,10 +148,13 @@ export function DoctorNotificationProvider({ children }: { children: ReactNode }
         }
     });
 
-    // 6. Support Ticket Replies from admin
-    supportTickets.forEach(ticket => {
+    // 6. Support Ticket Replies from admin - Solo tickets de este doctor
+    const doctorSupportTickets = supportTickets.filter(ticket => 
+        ticket.userRole === 'doctor' && ticket.userId === user.email
+    );
+    doctorSupportTickets.forEach(ticket => {
         const lastMessage = ticket.messages?.slice(-1)[0];
-        if (lastMessage?.sender === 'admin' && ticket.userId === user.email && !ticket.readByDoctor) {
+        if (lastMessage?.sender === 'admin' && !ticket.readByDoctor) {
             const id = `support-${ticket.id}-${lastMessage.id}`;
             if (!existingIds.has(id)) {
                 newNotificationsMap.set(id, {

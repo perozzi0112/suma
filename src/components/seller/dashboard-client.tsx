@@ -115,44 +115,39 @@ export function SellerDashboardClient({ currentTab }: { currentTab: string }) {
             <h1 className="text-3xl font-bold font-headline mb-2">Panel de Vendedora</h1>
             <p className="text-muted-foreground mb-8">Bienvenida de nuevo, {user.name}. Aquí puedes gestionar tus médicos y finanzas.</p>
 
-            <Tabs value={currentTab} onValueChange={handleTabChange}>
-                <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 h-auto">
-                    {tabs.map(tab => (
-                        <TabsTrigger key={tab.value} value={tab.value}>{tab.label}</TabsTrigger>
-                    ))}
-                </TabsList>
-                <div className="mt-6">
-                    <TabsContent value="referrals">
-                        <ReferralsTab 
-                            referredDoctors={referredDoctors} 
-                            referralCode={sellerData.referralCode}
-                            onUpdate={fetchData}
-                        />
-                    </TabsContent>
-                    <TabsContent value="finances">
-                        <FinancesTab
-                            sellerData={sellerData}
-                            sellerPayments={sellerPayments}
-                        />
-                    </TabsContent>
-                    <TabsContent value="accounts">
-                        <AccountsTab 
-                            sellerData={sellerData}
-                            onUpdate={fetchData}
-                        />
-                    </TabsContent>
-                    <TabsContent value="marketing">
-                        <MarketingTab marketingMaterials={marketingMaterials}/>
-                    </TabsContent>
-                    <TabsContent value="support">
-                        <SupportTab 
-                            supportTickets={supportTickets}
-                            sellerData={sellerData}
-                            onUpdate={fetchData}
-                        />
-                    </TabsContent>
-                </div>
-            </Tabs>
+            {/* Elimina el TabsList y los TabsTrigger, y solo renderiza el contenido: */}
+            <div className="mt-6">
+              {currentTab === "referrals" && (
+                <ReferralsTab 
+                  referredDoctors={referredDoctors} 
+                  referralCode={sellerData.referralCode}
+                  onUpdate={fetchData}
+                />
+              )}
+              {currentTab === "finances" && (
+                <FinancesTab
+                  sellerData={sellerData}
+                  sellerPayments={sellerPayments}
+                  onUpdate={fetchData}
+                />
+              )}
+              {currentTab === "accounts" && (
+                <AccountsTab 
+                  sellerData={sellerData}
+                  onUpdate={fetchData}
+                />
+              )}
+              {currentTab === "marketing" && (
+                <MarketingTab marketingMaterials={marketingMaterials}/>
+              )}
+              {currentTab === "support" && (
+                <SupportTab 
+                  supportTickets={supportTickets}
+                  sellerData={sellerData}
+                  onUpdate={fetchData}
+                />
+              )}
+            </div>
         </div>
       </main>
     </div>

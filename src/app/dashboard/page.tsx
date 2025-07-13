@@ -2,37 +2,32 @@
 "use client";
 export const dynamic = 'force-dynamic';
 
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth';
-import { HeaderWrapper, BottomNav } from '@/components/header';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { CalendarPlus, ClipboardList, User, Edit, CalendarDays, Clock, ThumbsUp, CalendarX, CheckCircle, XCircle, MessageSquare, Send, Loader2, FileText } from 'lucide-react';
-import { useAppointments } from '@/lib/appointments';
-import { useNotifications } from '@/lib/notifications';
-import { type Appointment, type Doctor, type ChatMessage } from '@/lib/types';
-import * as firestoreService from '@/lib/firestoreService';
-import { Separator } from '@/components/ui/separator';
+import { format, addHours, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { CalendarPlus, ClipboardList, User, Edit, CalendarDays, Clock, ThumbsUp, CalendarX, CheckCircle, XCircle, MessageSquare, Send, Loader2, FileText, MapPin, Star, Stethoscope, RefreshCw, ChevronLeft, ChevronRight, Search, Filter } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog"
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { format, formatDistanceToNow } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { useAuth } from '@/lib/auth';
+import { useAppointments } from '@/lib/appointments';
+import { useNotifications } from '@/lib/notifications';
+import { useChatNotifications } from '@/lib/chat-notifications';
+import * as firestoreService from '@/lib/firestoreService';
+import type { Appointment, Doctor, ChatMessage } from '@/lib/types';
+import { HeaderWrapper } from '@/components/header';
+import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import { formatDistanceToNow } from 'date-fns';
+import { WelcomeModal } from '@/components/welcome-modal';
 
 
 function AppointmentCard({ 
@@ -51,64 +46,135 @@ function AppointmentCard({
   onOpenRecord?: (appointment: Appointment) => void,
 }) {
   return (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardContent className="p-4 flex flex-col sm:flex-row gap-4">
-        <div className="flex-1 space-y-2">
-          <p className="font-bold text-lg">{appointment.doctorName}</p>
-          <p className="text-sm text-muted-foreground">{appointment.services.map(s => s.name).join(', ')}</p>
-          <div className="flex items-center text-sm gap-4 pt-1 text-muted-foreground">
-            <span className="flex items-center gap-1.5"><CalendarDays className="h-4 w-4" /> {new Date(appointment.date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
-            <span className="flex items-center gap-1.5"><Clock className="h-4 w-4" /> {appointment.time}</span>
+    <Card className={cn(
+      "hover:shadow-md transition-shadow relative",
+      isPast && appointment.attendance === 'Atendido' && "border-green-200 bg-green-50/30",
+      isPast && appointment.attendance === 'No Asistió' && "border-red-200 bg-red-50/30"
+    )}>
+      {/* Indicador de estado para citas pasadas */}
+      {isPast && (
+        <div className={cn(
+          "absolute top-0 left-0 right-0 h-1 rounded-t-lg",
+          appointment.attendance === 'Atendido' ? "bg-green-500" : "bg-red-500"
+        )} />
+      )}
+      <CardContent className="p-3 sm:p-4 flex flex-col sm:flex-row gap-3 sm:gap-4">
+        <div className="flex-1 space-y-3">
+          <div className="space-y-1">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+              <p className="font-bold text-base sm:text-lg">{appointment.doctorName}</p>
+              {doctor && (
+                <Badge variant="outline" className="text-xs w-fit">
+                  {doctor.specialty}
+                </Badge>
+              )}
+            </div>
+            {doctor && (
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  <span>{doctor.city}</span>
+                </div>
+                <div className="hidden sm:block">•</div>
+                <div className="flex items-center gap-1">
+                  <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                  <span>{doctor.rating} ({doctor.reviewCount} reseñas)</span>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Stethoscope className="h-4 w-4 text-primary" />
+              <p className="text-sm font-medium">Servicios:</p>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {appointment.services.map(s => (
+                <Badge key={s.id} variant="secondary" className="text-xs">
+                  {s.name}
+                </Badge>
+              ))}
+            </div>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row sm:items-center text-xs sm:text-sm gap-2 sm:gap-4 pt-1 text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <CalendarDays className="h-4 w-4" /> 
+              {new Date(appointment.date + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Clock className="h-4 w-4" /> 
+              {appointment.time}
+            </span>
           </div>
         </div>
         <Separator orientation="vertical" className="h-auto hidden sm:block mx-2" />
         <Separator orientation="horizontal" className="w-full block sm:hidden my-2" />
-        <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between">
-          <p className="font-bold text-lg">${appointment.totalPrice.toFixed(2)}</p>
+        <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between gap-2">
+          <div className="text-right">
+            <p className="font-bold text-base sm:text-lg text-primary">${appointment.totalPrice.toFixed(2)}</p>
+            <p className="text-xs text-muted-foreground">
+              {appointment.paymentMethod === 'efectivo' ? 'Pago en efectivo' : 'Transferencia bancaria'}
+            </p>
+          </div>
           {isPast ? (
               <Badge variant={appointment.attendance === 'Atendido' ? 'default' : 'destructive'} className={appointment.attendance === 'Atendido' ? 'bg-green-600 text-white' : ''}>
-                  {appointment.attendance}
+                  {appointment.attendance === 'Atendido' ? '✅ Atendido' : '❌ No Asistió'}
               </Badge>
           ) : (
               <Badge variant={appointment.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={appointment.paymentStatus === 'Pagado' ? 'bg-green-600 text-white' : ''}>
-                  {appointment.paymentStatus}
+                  {appointment.paymentStatus === 'Pagado' ? '✅ Pagado' : '⏳ Pendiente'}
               </Badge>
           )}
         </div>
       </CardContent>
-      <CardFooter className="p-4 pt-0 border-t mt-4 flex-col items-center justify-between gap-2 sm:flex-row">
-        <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-start w-full">
+      <CardFooter className="p-3 sm:p-4 pt-0 border-t mt-4">
+        <div className="w-full space-y-3">
+          {/* Estado de confirmación */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             {onUpdateConfirmation && appointment.patientConfirmationStatus === 'Pendiente' && (
-            <>
-                <p className="text-sm text-muted-foreground text-center sm:text-left flex-1 basis-full sm:basis-auto">¿Asistirás a esta cita?</p>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                <p className="text-sm text-muted-foreground">¿Asistirás a esta cita?</p>
                 <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => onUpdateConfirmation(appointment.id, 'Cancelada')}>
+                  <Button size="sm" variant="outline" onClick={() => onUpdateConfirmation(appointment.id, 'Cancelada')}>
                     <CalendarX className="mr-2 h-4 w-4" /> Cancelar
-                </Button>
-                <Button size="sm" onClick={() => onUpdateConfirmation(appointment.id, 'Confirmada')}>
+                  </Button>
+                  <Button size="sm" onClick={() => onUpdateConfirmation(appointment.id, 'Confirmada')}>
                     <ThumbsUp className="mr-2 h-4 w-4" /> Confirmar
-                </Button>
+                  </Button>
                 </div>
-            </>
+              </div>
             )}
             {appointment.patientConfirmationStatus === 'Confirmada' && !isPast && (
-            <Badge variant="default" className="bg-green-600 text-white justify-center py-1.5 px-3">
+              <Badge variant="default" className="bg-green-600 text-white">
                 <CheckCircle className="mr-2 h-4 w-4" /> Asistencia Confirmada
-            </Badge>
+              </Badge>
             )}
             {appointment.patientConfirmationStatus === 'Cancelada' && (
-            <Badge variant="destructive" className="justify-center py-1.5 px-3">
+              <Badge variant="destructive">
                 <XCircle className="mr-2 h-4 w-4" /> Cita Cancelada por ti
-            </Badge>
+              </Badge>
             )}
-            {isPast && appointment.attendance === 'Atendido' && onOpenRecord && (
-                <Button variant="secondary" onClick={() => onOpenRecord(appointment)}>
-                    <ClipboardList className="mr-2 h-4 w-4" /> Ver Resumen
+          </div>
+          
+          {/* Acciones */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="flex gap-2">
+              {isPast && appointment.attendance === 'Atendido' && onOpenRecord && (
+                <Button variant="secondary" size="sm" onClick={() => onOpenRecord(appointment)}>
+                  <ClipboardList className="mr-2 h-4 w-4" /> Ver Resumen Clínico
                 </Button>
-            )}
-        </div>
-        <div className="flex justify-end w-full sm:w-auto mt-2 sm:mt-0">
-           {doctor && <Button size="sm" variant="ghost" onClick={() => onOpenChat(appointment)}><MessageSquare className="mr-2 h-4 w-4"/> Contactar</Button>}
+              )}
+            </div>
+            <div className="flex gap-2">
+              {doctor && (
+                <Button size="sm" variant="outline" onClick={() => onOpenChat(appointment)}>
+                  <MessageSquare className="mr-2 h-4 w-4"/> Contactar Doctor
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       </CardFooter>
     </Card>
@@ -120,6 +186,7 @@ export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
   const { appointments, updateAppointmentConfirmation, refreshAppointments } = useAppointments();
   const { checkAndSetNotifications } = useNotifications();
+  const { updateUnreadChatCount } = useChatNotifications();
   const router = useRouter();
   const { toast } = useToast();
   
@@ -133,6 +200,15 @@ export default function DashboardPage() {
 
   const [isRecordDialogOpen, setIsRecordDialogOpen] = useState(false);
   const [selectedRecordAppointment, setSelectedRecordAppointment] = useState<Appointment | null>(null);
+  
+  // Estados para paginación y filtros del historial
+  const [currentPage, setCurrentPage] = useState(1);
+  const [dateFilter, setDateFilter] = useState('');
+  const [isFilterActive, setIsFilterActive] = useState(false);
+  const itemsPerPage = 10;
+
+  // Estado para el modal de bienvenida
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
 
   useEffect(() => {
     const fetchDoctors = async () => {
@@ -166,8 +242,20 @@ export default function DashboardPage() {
     }
   }, [user, authLoading, router]);
 
-  const { upcomingAppointments, pastAppointments } = useMemo(() => {
-    if (!user?.email) return { upcomingAppointments: [], pastAppointments: [] };
+  // Mostrar modal de bienvenida para pacientes nuevos
+  useEffect(() => {
+    if (user?.role === 'patient' && user.profileCompleted === false) {
+      setShowWelcomeModal(true);
+    }
+  }, [user]);
+
+  const { upcomingAppointments, pastAppointments, filteredPastAppointments, totalPages } = useMemo(() => {
+    if (!user?.email) return { 
+      upcomingAppointments: [], 
+      pastAppointments: [], 
+      filteredPastAppointments: [], 
+      totalPages: 0 
+    };
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -188,23 +276,73 @@ export default function DashboardPage() {
     upcoming.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     past.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
-    return { upcomingAppointments: upcoming, pastAppointments: past };
-  }, [user, appointments]);
+    // Aplicar filtro por fecha si está activo
+    let filteredPast = past;
+    if (isFilterActive && dateFilter) {
+      filteredPast = past.filter(appt => appt.date === dateFilter);
+    }
+    
+    // Calcular paginación
+    const totalPages = Math.ceil(filteredPast.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedPast = filteredPast.slice(startIndex, endIndex);
+    
+    return { 
+      upcomingAppointments: upcoming, 
+      pastAppointments: past, 
+      filteredPastAppointments: paginatedPast,
+      totalPages 
+    };
+  }, [user, appointments, dateFilter, isFilterActive, currentPage, itemsPerPage]);
   
   useEffect(() => {
     if (user?.role === 'patient' && appointments.length > 0) {
       checkAndSetNotifications(appointments);
+      updateUnreadChatCount(appointments);
     }
-  }, [user, appointments, checkAndSetNotifications]);
+  }, [user, appointments, checkAndSetNotifications, updateUnreadChatCount]);
 
   const handleOpenChat = (appointment: Appointment) => {
     setSelectedChatAppointment(appointment);
     setIsChatDialogOpen(true);
+    // Marcar mensajes como leídos cuando se abre el chat
+    if (appointment.messages && appointment.messages.length > 0) {
+      const lastMessage = appointment.messages[appointment.messages.length - 1];
+      if (lastMessage.sender === 'doctor' && !appointment.readByPatient) {
+        firestoreService.updateAppointment(appointment.id, { readByPatient: true });
+      }
+    }
   };
   
   const handleOpenRecord = (appointment: Appointment) => {
     setSelectedRecordAppointment(appointment);
     setIsRecordDialogOpen(true);
+  };
+
+  const handleRefreshAppointments = async () => {
+    try {
+      await refreshAppointments();
+      toast({ title: 'Datos actualizados', description: 'Se han refrescado las citas.' });
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron actualizar los datos.' });
+    }
+  };
+
+  const handleDateFilter = (date: string) => {
+    setDateFilter(date);
+    setIsFilterActive(date !== '');
+    setCurrentPage(1); // Resetear a la primera página
+  };
+
+  const clearFilter = () => {
+    setDateFilter('');
+    setIsFilterActive(false);
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
   };
 
   const handleSendMessage = async () => {
@@ -229,6 +367,8 @@ export default function DashboardPage() {
         
         await refreshAppointments();
         setChatMessage("");
+        // Actualizar contador de chat no leído
+        updateUnreadChatCount(appointments);
 
     } catch (error) {
         console.error("Error sending message:", error);
@@ -257,8 +397,21 @@ export default function DashboardPage() {
       <HeaderWrapper />
       <main className="flex-1 bg-muted/40 pb-20 md:pb-0">
         <div className="container py-12">
-          <h1 className="text-3xl font-bold font-headline mb-2">¡Bienvenido de nuevo, {user.name}!</h1>
-          <p className="text-muted-foreground mb-8">Este es tu panel médico personal.</p>
+          <div className="flex justify-between items-start mb-8">
+            <div>
+              <h1 className="text-3xl font-bold font-headline mb-2">¡Bienvenido de nuevo, {user.name}!</h1>
+              <p className="text-muted-foreground">Este es tu panel médico personal.</p>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleRefreshAppointments}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Actualizar
+            </Button>
+          </div>
           
           <div className="grid md:grid-cols-3 gap-8 items-start">
             <div className="md:col-span-2 grid gap-8">
@@ -296,13 +449,40 @@ export default function DashboardPage() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Historial Médico</CardTitle>
-                  <CardDescription>Un resumen de tus consultas pasadas.</CardDescription>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                      <CardTitle>Historial Médico</CardTitle>
+                      <CardDescription>Un resumen de tus consultas pasadas.</CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          type="date"
+                          placeholder="Filtrar por fecha..."
+                          value={dateFilter}
+                          onChange={(e) => handleDateFilter(e.target.value)}
+                          className="pl-10 w-full sm:w-[200px]"
+                        />
+                      </div>
+                      {isFilterActive && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={clearFilter}
+                          className="flex items-center gap-2"
+                        >
+                          <Filter className="h-4 w-4" />
+                          Limpiar
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                   {pastAppointments.length > 0 ? (
+                   {filteredPastAppointments.length > 0 ? (
                     <div className="space-y-4">
-                      {pastAppointments.map(appt => (
+                      {filteredPastAppointments.map(appt => (
                         <AppointmentCard 
                           key={appt.id} 
                           appointment={appt} 
@@ -316,10 +496,52 @@ export default function DashboardPage() {
                   ) : (
                     <div className="text-center py-12 text-muted-foreground flex flex-col items-center gap-4">
                       <ClipboardList className="h-12 w-12" />
-                      <p>Tu historial médico aparecerá aquí después de tu primera cita.</p>
+                      <p>
+                        {isFilterActive 
+                          ? 'No se encontraron citas para la fecha seleccionada.' 
+                          : 'Tu historial médico aparecerá aquí después de tu primera cita.'
+                        }
+                      </p>
                     </div>
                   )}
                 </CardContent>
+                {totalPages > 1 && (
+                  <CardFooter className="flex justify-center">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                        Anterior
+                      </Button>
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                          <Button
+                            key={page}
+                            variant={currentPage === page ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => handlePageChange(page)}
+                            className="w-8 h-8 p-0"
+                          >
+                            {page}
+                          </Button>
+                        ))}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                      >
+                        Siguiente
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardFooter>
+                )}
               </Card>
             </div>
             
@@ -328,23 +550,33 @@ export default function DashboardPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2"><User /> Mi Perfil</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3 text-sm">
-                   <div>
-                      <p className="font-semibold">Nombre</p>
-                      <p className="text-muted-foreground">{user.name}</p>
-                   </div>
-                    <div>
-                      <p className="font-semibold">Correo Electrónico</p>
-                      <p className="text-muted-foreground">{user.email}</p>
-                   </div>
-                    <div>
-                      <p className="font-semibold">Edad</p>
-                      <p className="text-muted-foreground">{user.age || 'No especificada'}</p>
-                   </div>
-                    <div>
-                      <p className="font-semibold">Sexo</p>
-                      <p className="text-muted-foreground capitalize">{user.gender || 'No especificado'}</p>
-                   </div>
+                <CardContent className="space-y-4">
+                  {/* Foto de perfil */}
+                  <div className="flex justify-center">
+                    <Avatar className="h-20 w-20">
+                      <AvatarImage src={user.profileImage ?? undefined} alt={user.name} />
+                      <AvatarFallback className="text-lg">{user.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                  </div>
+                  
+                  <div className="space-y-3 text-sm">
+                     <div>
+                        <p className="font-semibold">Nombre</p>
+                        <p className="text-muted-foreground">{user.name}</p>
+                     </div>
+                      <div>
+                        <p className="font-semibold">Correo Electrónico</p>
+                        <p className="text-muted-foreground">{user.email}</p>
+                     </div>
+                      <div>
+                        <p className="font-semibold">Edad</p>
+                        <p className="text-muted-foreground">{user.age || 'No especificada'}</p>
+                     </div>
+                      <div>
+                        <p className="font-semibold">Sexo</p>
+                        <p className="text-muted-foreground capitalize">{user.gender || 'No especificado'}</p>
+                     </div>
+                  </div>
                 </CardContent>
                 <CardFooter>
                   <Button asChild variant="outline" className="w-full">
@@ -359,10 +591,15 @@ export default function DashboardPage() {
           </div>
         </div>
       </main>
-      <BottomNav />
 
       {/* Chat Dialog */}
-      <Dialog open={isChatDialogOpen} onOpenChange={setIsChatDialogOpen}>
+      <Dialog open={isChatDialogOpen} onOpenChange={(open) => {
+        setIsChatDialogOpen(open);
+        if (!open) {
+          // Actualizar contador cuando se cierra el chat
+          updateUnreadChatCount(appointments);
+        }
+      }}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3">
@@ -453,6 +690,12 @@ export default function DashboardPage() {
             </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Welcome Modal para pacientes nuevos */}
+      <WelcomeModal 
+        isOpen={showWelcomeModal} 
+        onClose={() => setShowWelcomeModal(false)} 
+      />
 
     </div>
   );

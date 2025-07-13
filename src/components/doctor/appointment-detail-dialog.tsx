@@ -19,10 +19,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { Eye, CheckCircle, ThumbsUp, ThumbsDown, MessageSquare, Save } from "lucide-react";
+import { Eye, CheckCircle, ThumbsUp, ThumbsDown, MessageSquare, Save, CreditCard } from "lucide-react";
 import { format, parseISO, addHours } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from "@/lib/utils";
+import Image from 'next/image';
 
 interface AppointmentDetailDialogProps {
   isOpen: boolean;
@@ -44,6 +45,7 @@ export function AppointmentDetailDialog({
   const [clinicalNotes, setClinicalNotes] = useState("");
   const [prescription, setPrescription] = useState("");
   const [editableServices, setEditableServices] = useState<Service[]>([]);
+  const [isProofDialogOpen, setIsProofDialogOpen] = useState(false);
 
   useEffect(() => {
     if (appointment) {
@@ -85,6 +87,14 @@ export function AppointmentDetailDialog({
     }
   };
 
+  const handleViewProof = () => {
+    if (!appointment?.paymentProof) {
+      alert('No hay comprobante disponible para esta cita.');
+      return;
+    }
+    setIsProofDialogOpen(true);
+  };
+
   if (!appointment) {
     return null;
   }
@@ -92,7 +102,32 @@ export function AppointmentDetailDialog({
   const isAttended = appointment.attendance === 'Atendido';
   const isAppointmentLocked = appointment.attendance !== 'Pendiente';
 
+  // Función para obtener el texto del estado de pago
+  const getPaymentStatusText = (status: string) => {
+    switch (status) {
+      case 'Pagado':
+        return 'Pago Confirmado';
+      case 'Pendiente':
+        return 'Pendiente de Pago';
+      default:
+        return status;
+    }
+  };
+
+  // Función para obtener el icono del estado de pago
+  const getPaymentStatusIcon = (status: string) => {
+    switch (status) {
+      case 'Pagado':
+        return <CheckCircle className="mr-1 h-4 w-4" />;
+      case 'Pendiente':
+        return <CreditCard className="mr-1 h-4 w-4" />;
+      default:
+        return null;
+    }
+  };
+
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-3xl">
             <DialogHeader>
@@ -111,19 +146,33 @@ export function AppointmentDetailDialog({
                         <CardContent className="text-sm space-y-2">
                             <p><strong>Total:</strong> <span className="font-mono font-semibold">${editableTotalPrice.toFixed(2)}</span></p>
                             <p><strong>Método:</strong> <span className="capitalize">{appointment.paymentMethod}</span></p>
-                            <div className="flex items-center gap-2"><strong>Estado:</strong><Badge variant={appointment.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={cn({'bg-green-600 text-white': appointment.paymentStatus === 'Pagado'})}>{appointment.paymentStatus}</Badge></div>
+                            <div className="flex items-center gap-2">
+                                <strong>Estado:</strong>
+                                <Badge variant={appointment.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={cn({'bg-green-600 text-white': appointment.paymentStatus === 'Pagado'})}>
+                                    {getPaymentStatusIcon(appointment.paymentStatus)}
+                                    {getPaymentStatusText(appointment.paymentStatus)}
+                                </Badge>
+                            </div>
                             
                             {appointment.paymentMethod === 'transferencia' && (
                                 <>
-                                    <a href={appointment.paymentProof || '#'} target="_blank" rel="noopener noreferrer" className={cn(buttonVariants({variant: 'outline', size: 'sm'}), 'w-full mt-2')}>
+                                      <Button 
+                                          variant="outline" 
+                                          size="sm" 
+                                          className="w-full mt-2"
+                                          onClick={handleViewProof}
+                                          disabled={!appointment.paymentProof}
+                                      >
                                         <Eye className="mr-2 h-4 w-4"/> Ver Comprobante
-                                    </a>
-                                    {appointment.paymentStatus === 'Pendiente' && (
-                                        <Button size="sm" className="w-full mt-2" onClick={() => onUpdateAppointment(appointment.id, { paymentStatus: 'Pagado' })}>
-                                            <CheckCircle className="mr-2 h-4 w-4"/> Aprobar Pago
-                                        </Button>
-                                    )}
+                                      </Button>
                                 </>
+                            )}
+                            
+                            {appointment.paymentStatus === 'Pendiente' && (
+                                <Button size="sm" className="w-full mt-2" onClick={() => onUpdateAppointment(appointment.id, { paymentStatus: 'Pagado' })}>
+                                    <CheckCircle className="mr-2 h-4 w-4"/> 
+                                    {appointment.paymentMethod === 'efectivo' ? 'Confirmar Pago en Efectivo' : 'Aprobar Pago'}
+                                </Button>
                             )}
                         </CardContent>
                     </Card>
@@ -239,5 +288,55 @@ export function AppointmentDetailDialog({
             </DialogFooter>
         </DialogContent>
     </Dialog>
+
+      {/* Diálogo para mostrar el comprobante de pago */}
+      <Dialog open={isProofDialogOpen} onOpenChange={setIsProofDialogOpen}>
+          <DialogContent className="max-w-4xl max-h-[80vh]">
+              <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                      <Eye className="h-5 w-5" />
+                      Comprobante de Pago
+                  </DialogTitle>
+                  <DialogDescription>
+                      Comprobante de pago para la cita con {appointment?.patientName}
+                  </DialogDescription>
+              </DialogHeader>
+              <div className="py-4">
+                  {appointment?.paymentProof ? (
+                      <div className="relative w-full h-[60vh] bg-muted rounded-lg overflow-hidden">
+                          {appointment.paymentProof.startsWith('data:') ? (
+                              // Es un archivo base64
+                              <Image 
+                                  src={appointment.paymentProof} 
+                                  alt="Comprobante de pago" 
+                                  fill 
+                                  className="object-contain"
+                                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
+                              />
+                          ) : (
+                              // Es una URL
+                              <Image 
+                                  src={appointment.paymentProof} 
+                                  alt="Comprobante de pago" 
+                                  fill 
+                                  className="object-contain"
+                                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
+                              />
+                          )}
+                      </div>
+                  ) : (
+                      <div className="flex items-center justify-center h-32 text-muted-foreground">
+                          No se pudo cargar el comprobante
+                      </div>
+                  )}
+              </div>
+              <DialogFooter>
+                  <DialogClose asChild>
+                      <Button variant="outline">Cerrar</Button>
+                  </DialogClose>
+              </DialogFooter>
+          </DialogContent>
+      </Dialog>
+    </>
   );
 }

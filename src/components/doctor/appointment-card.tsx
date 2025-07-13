@@ -5,12 +5,36 @@ import { Appointment } from "@/lib/types";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, Clock, Eye, MessageSquare, CheckCircle, XCircle, HelpCircle } from "lucide-react";
+import { CalendarDays, Clock, Eye, MessageSquare, CheckCircle, XCircle, HelpCircle, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, parseISO, addHours } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 export function DoctorAppointmentCard({ appointment, onOpenDialog, isPast = false }: { appointment: Appointment, onOpenDialog: (type: 'appointment' | 'chat', appointment: Appointment) => void, isPast?: boolean }) {
+    // Función para obtener el texto del estado de pago
+    const getPaymentStatusText = (status: string) => {
+        switch (status) {
+            case 'Pagado':
+                return 'Pago Confirmado';
+            case 'Pendiente':
+                return 'Pendiente de Pago';
+            default:
+                return status;
+        }
+    };
+
+    // Función para obtener el icono del estado de pago
+    const getPaymentStatusIcon = (status: string) => {
+        switch (status) {
+            case 'Pagado':
+                return <CheckCircle className="mr-1 h-3 w-3" />;
+            case 'Pendiente':
+                return <CreditCard className="mr-1 h-3 w-3" />;
+            default:
+                return null;
+        }
+    };
+
     return (
         <Card className="hover:shadow-md transition-shadow">
           <CardContent className="p-4 flex flex-col sm:flex-row gap-4">
@@ -31,7 +55,8 @@ export function DoctorAppointmentCard({ appointment, onOpenDialog, isPast = fals
                     ) : (
                     <>
                         <Badge variant={appointment.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={cn({'bg-green-600 text-white': appointment.paymentStatus === 'Pagado'})}>
-                            {appointment.paymentStatus}
+                            {getPaymentStatusIcon(appointment.paymentStatus)}
+                            {getPaymentStatusText(appointment.paymentStatus)}
                         </Badge>
                         {appointment.patientConfirmationStatus === 'Pendiente' && (
                         <Badge variant="outline" className="border-amber-500 text-amber-600">

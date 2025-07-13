@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
-import { Clock, MapPin, Star, CheckCircle, Banknote, Landmark, Upload, DollarSign, ClipboardCheck, Tag, Loader2, XCircle } from "lucide-react";
+import { Clock, MapPin, Star, CheckCircle, Banknote, Landmark, Upload, DollarSign, ClipboardCheck, Tag, Loader2, XCircle, Copy } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -23,17 +23,9 @@ import { useAppointments } from "@/lib/appointments";
 import { useAuth } from "@/lib/auth";
 import { useSettings } from "@/lib/settings";
 import Link from "next/link";
+import { DoctorReviews } from "@/components/doctor-reviews";
 
 const dayKeyMapping = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
-
-const fileToDataUri = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
-};
 
 function generateTimeSlots(startTime: string, endTime: string, duration: number): string[] {
     const slots: string[] = [];
@@ -66,6 +58,8 @@ export default function DoctorProfilePage() {
   const [doctor, setDoctor] = useState<Doctor | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string>('');
   
   const [step, setStep] = useState<'selectDateTime' | 'selectServices' | 'selectPayment' | 'confirmation'>('selectDateTime');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -79,6 +73,17 @@ export default function DoctorProfilePage() {
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
   const [discountAmount, setDiscountAmount] = useState(0);
 
+  const fetchAppointments = useCallback(async () => {
+    if (id) {
+      try {
+        const docAppointments = await firestoreService.getDoctorAppointments(id);
+        setAppointments(docAppointments);
+      } catch (error) {
+        console.error('Error fetching appointments:', error);
+      }
+    }
+  }, [id]);
+
   useEffect(() => {
     if (id) {
         const fetchDoctorAndAppointments = async () => {
@@ -89,10 +94,16 @@ export default function DoctorProfilePage() {
                     firestoreService.getDoctorAppointments(id),
                 ]);
 
-                if (docData) {
-                    setDoctor(docData);
-                    setAppointments(docAppointments);
-                } else {
+                            if (docData) {
+                console.log('🏥 Datos del doctor cargados en página de perfil:', {
+                    doctorId: docData.id,
+                    doctorName: docData.name,
+                    cupones: docData.coupons || [],
+                    cantidadCupones: (docData.coupons || []).length
+                });
+                setDoctor(docData);
+                setAppointments(docAppointments);
+            } else {
                     toast({
                         variant: "destructive",
                         title: "Médico no encontrado",
@@ -158,8 +169,16 @@ export default function DoctorProfilePage() {
   
   const handleApplyCoupon = () => {
     if (!id || !couponInput || !doctor) return;
-    const applicableCoupons = coupons.filter(c => c.scope === 'general' || c.scope === id);
-    const coupon = applicableCoupons.find(c => c.code.toUpperCase() === couponInput.toUpperCase());
+    
+    // Combinar cupones globales y específicos del doctor
+    const globalCoupons = coupons.filter(c => c.scope === 'general' || c.scope === id);
+    const doctorCoupons = doctor.coupons || [];
+    const allApplicableCoupons = [...globalCoupons, ...doctorCoupons];
+    
+    console.log('🔍 Buscando cupón:', couponInput.toUpperCase());
+    console.log('📋 Cupones disponibles:', allApplicableCoupons.map(c => ({ code: c.code, scope: c.scope })));
+    
+    const coupon = allApplicableCoupons.find(c => c.code.toUpperCase() === couponInput.toUpperCase());
     const totalBeforeDiscount = (doctor.consultationFee || 0) + subtotal;
 
     if (coupon) {
@@ -193,10 +212,38 @@ export default function DoctorProfilePage() {
     setCouponInput("");
   };
 
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setPaymentProof(e.target.files[0]);
+      const file = e.target.files[0];
+      
+      // Validar tipo de archivo
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
+      if (!allowedTypes.includes(file.type)) {
+        toast({
+          variant: "destructive",
+          title: "Tipo de archivo no válido",
+          description: "Por favor, sube una imagen (JPG, PNG, GIF) o un PDF.",
+        });
+        e.target.value = '';
+        return;
+      }
+      
+      // Validar tamaño (máximo 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          variant: "destructive",
+          title: "Archivo demasiado grande",
+          description: `El archivo es demasiado grande (${(file.size / 1024 / 1024).toFixed(2)}MB). Máximo permitido: 5MB.`,
+        });
+        e.target.value = '';
+        return;
+      }
+      
+      setPaymentProof(file);
+      toast({
+        title: "Archivo seleccionado",
+        description: `${file.name} ha sido seleccionado correctamente.`,
+      });
     }
   };
 
@@ -211,7 +258,14 @@ export default function DoctorProfilePage() {
   };
 
   const handlePaymentSubmit = async () => {
-    if (!doctor || !selectedDate || !selectedTime || !paymentMethod) return;
+    if (!doctor || !selectedDate || !selectedTime || !paymentMethod) {
+      toast({
+        variant: "destructive",
+        title: "Información Faltante",
+        description: "Por favor, completa todos los campos requeridos.",
+      });
+      return;
+    }
 
     if (!user) {
       toast({
@@ -222,36 +276,150 @@ export default function DoctorProfilePage() {
       return;
     }
     
-    if (paymentMethod === 'transferencia' && (!paymentProof || !selectedBankDetail)) {
-      toast({
-        variant: "destructive",
-        title: "Información Faltante",
-        description: "Por favor, selecciona una cuenta y sube el comprobante de pago.",
-      });
-      return;
+    // Validar transferencia solo si es el método seleccionado
+    if (paymentMethod === 'transferencia') {
+      if (!selectedBankDetail) {
+        toast({
+          variant: "destructive",
+          title: "Cuenta Bancaria Requerida",
+          description: "Por favor, selecciona una cuenta bancaria para la transferencia.",
+        });
+        return;
+      }
+      
+      if (!paymentProof) {
+        toast({
+          variant: "destructive",
+          title: "Comprobante Requerido",
+          description: "Por favor, sube el comprobante de pago.",
+        });
+        return;
+      }
     }
     
-    let proofUrl: string | null = null;
-    if (paymentMethod === 'transferencia' && paymentProof) {
-        proofUrl = await fileToDataUri(paymentProof);
+    setIsSubmitting(true);
+    
+    try {
+      let proofUrl: string | null = null;
+      
+      if (paymentMethod === 'transferencia' && paymentProof) {
+        console.log('Iniciando subida de comprobante de pago...', {
+          fileName: paymentProof.name,
+          fileSize: paymentProof.size,
+          fileType: paymentProof.type
+        });
+        
+        try {
+          setUploadProgress('Subiendo comprobante de pago...');
+          
+          // Subir archivo a Firebase Storage usando la función específica para comprobantes de pago
+          const fileName = `payment-proofs/${doctor.id}/${Date.now()}-${paymentProof.name}`;
+          console.log('Ruta de archivo:', fileName);
+          
+          proofUrl = await firestoreService.uploadPaymentProof(paymentProof, fileName);
+          console.log('Comprobante subido exitosamente:', proofUrl);
+          
+          setUploadProgress('Comprobante subido exitosamente');
+        } catch (uploadError) {
+          console.error('Error al subir comprobante:', uploadError);
+          let errorMessage = "No se pudo subir el comprobante de pago.";
+          
+          if (uploadError instanceof Error) {
+            if (uploadError.message.includes('storage/unauthorized')) {
+              errorMessage = "No tienes permisos para subir archivos. Contacta al administrador.";
+            } else if (uploadError.message.includes('storage/quota-exceeded')) {
+              errorMessage = "Se ha excedido la cuota de almacenamiento. Intenta con un archivo más pequeño.";
+            } else if (uploadError.message.includes('storage/unauthenticated')) {
+              errorMessage = "Debes estar autenticado para subir archivos. Inicia sesión nuevamente.";
+            } else if (uploadError.message.includes('Timeout')) {
+              errorMessage = "La subida tardó demasiado. Intenta con un archivo más pequeño (<1MB).";
+            } else {
+              errorMessage = uploadError.message;
+            }
+          }
+          
+          toast({
+            variant: "destructive",
+            title: "Error al Subir Comprobante",
+            description: errorMessage,
+          });
+          setUploadProgress('');
+          return;
+        }
+      }
+
+      setUploadProgress('Creando cita...');
+      
+      console.log('Creando cita con datos:', {
+        doctorId: doctor.id,
+        date: selectedDate.toISOString().split('T')[0],
+        time: selectedTime,
+        paymentMethod,
+        proofUrl
+      });
+
+      const appointmentData = {
+        patientId: user.id,
+        patientName: user.name,
+        doctorId: doctor.id,
+        doctorName: doctor.name,
+        consultationFee: doctor.consultationFee || 0,
+        date: selectedDate.toISOString().split('T')[0],
+        time: selectedTime,
+        services: selectedServices,
+        totalPrice: finalPrice,
+        paymentMethod: paymentMethod,
+        paymentStatus: 'Pendiente' as const,
+        paymentProof: proofUrl,
+        attendance: 'Pendiente' as const,
+        patientConfirmationStatus: 'Pendiente' as const,
+      };
+
+      console.log('🔍 About to create appointment with data:', appointmentData);
+
+      await addAppointment(appointmentData);
+
+      console.log('Cita creada exitosamente');
+
+      setUploadProgress('Finalizando...');
+      
+      // Refrescar las citas para actualizar los horarios disponibles
+      await fetchAppointments();
+
+      toast({
+        title: "¡Cita Agendada!",
+        description: "Tu cita ha sido confirmada exitosamente.",
+      });
+
+      setStep('confirmation');
+    } catch (error) {
+      console.error('Error al agendar cita:', error);
+      
+      // Manejar error específico de cita duplicada
+      if (error instanceof Error && error.message.includes('Ya existe una cita agendada')) {
+        toast({
+          variant: "destructive",
+          title: "Horario No Disponible",
+          description: error.message,
+        });
+        
+        // Refrescar las citas para mostrar el horario como ocupado
+        await fetchAppointments();
+        
+        // Volver al paso de selección de fecha/hora
+        setStep('selectDateTime');
+        setSelectedTime(null);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error al Agendar",
+          description: error instanceof Error ? error.message : "No se pudo agendar la cita. Intenta de nuevo.",
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
+      setUploadProgress('');
     }
-
-    await addAppointment({
-      doctorId: doctor.id,
-      doctorName: doctor.name,
-      consultationFee: doctor.consultationFee || 0,
-      date: selectedDate.toISOString().split('T')[0],
-      time: selectedTime,
-      services: selectedServices,
-      totalPrice: finalPrice,
-      paymentMethod: paymentMethod,
-      paymentStatus: 'Pendiente',
-      paymentProof: proofUrl,
-      attendance: 'Pendiente',
-      patientConfirmationStatus: 'Pendiente',
-    });
-
-    setStep('confirmation');
   };
 
   const resetBookingFlow = () => {
@@ -487,23 +655,23 @@ export default function DoctorProfilePage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <RadioGroup value={paymentMethod || ''} onValueChange={(value) => setPaymentMethod(value as 'efectivo' | 'transferencia')}>
-                <div className="flex items-center space-x-3 p-4 border rounded-md">
+                <div className="flex items-center space-x-3 p-3 sm:p-4 border rounded-md hover:bg-muted/50 transition-colors">
                   <RadioGroupItem value="efectivo" id="efectivo" />
-                  <Label htmlFor="efectivo" className="flex items-center space-x-3 cursor-pointer w-full">
-                    <Banknote className="h-6 w-6 text-green-600" />
-                    <div>
-                      <span className="font-semibold">Efectivo</span>
-                      <p className="text-sm text-muted-foreground">Paga el monto total el día de tu cita.</p>
+                  <Label htmlFor="efectivo" className="flex items-center space-x-2 sm:space-x-3 cursor-pointer w-full">
+                    <Banknote className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <span className="font-semibold text-sm sm:text-base">Efectivo</span>
+                      <p className="text-xs sm:text-sm text-muted-foreground">Paga el monto total el día de tu cita.</p>
                     </div>
                   </Label>
                 </div>
-                <div className="flex items-center space-x-3 p-4 border rounded-md">
+                <div className="flex items-center space-x-3 p-3 sm:p-4 border rounded-md hover:bg-muted/50 transition-colors">
                   <RadioGroupItem value="transferencia" id="transferencia" />
-                  <Label htmlFor="transferencia" className="flex items-center space-x-3 cursor-pointer w-full">
-                    <Landmark className="h-6 w-6 text-blue-600" />
-                    <div>
-                      <span className="font-semibold">Transferencia Bancaria</span>
-                      <p className="text-sm text-muted-foreground">Realiza el pago y sube el comprobante.</p>
+                  <Label htmlFor="transferencia" className="flex items-center space-x-2 sm:space-x-3 cursor-pointer w-full">
+                    <Landmark className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <span className="font-semibold text-sm sm:text-base">Transferencia Bancaria</span>
+                      <p className="text-xs sm:text-sm text-muted-foreground">Realiza el pago y sube el comprobante.</p>
                     </div>
                   </Label>
                 </div>
@@ -525,16 +693,16 @@ export default function DoctorProfilePage() {
                             className="space-y-2"
                         >
                             {doctor.bankDetails.map((bd) => (
-                                <div key={bd.id} className="flex items-center space-x-3 rounded-md border bg-background p-3">
+                                <div key={bd.id} className="flex items-center space-x-2 sm:space-x-3 rounded-md border bg-background p-2 sm:p-3 hover:bg-muted/30 transition-colors">
                                     <RadioGroupItem value={bd.id} id={`bank-${bd.id}`} />
                                     <Label
                                         htmlFor={`bank-${bd.id}`}
                                         className="flex w-full cursor-pointer items-center gap-2 font-normal"
                                     >
-                                        <Landmark className="h-5 w-5 text-muted-foreground" />
-                                        <div>
-                                            <span className="font-semibold">{bd.bank}</span>
-                                            <p className="text-xs text-muted-foreground">{bd.accountHolder}</p>
+                                        <Landmark className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground flex-shrink-0" />
+                                        <div className="min-w-0 flex-1">
+                                            <span className="font-semibold text-sm sm:text-base">{bd.bank}</span>
+                                            <p className="text-xs text-muted-foreground truncate">{bd.accountHolder}</p>
                                         </div>
                                     </Label>
                                 </div>
@@ -547,35 +715,138 @@ export default function DoctorProfilePage() {
                       )}
 
                     {selectedBankDetail && (
-                      <div className="space-y-2 border-t pt-4 mt-4">
-                        <p><strong>Banco:</strong> {selectedBankDetail.bank}</p>
-                        <p><strong>Titular:</strong> {selectedBankDetail.accountHolder}</p>
-                        <p><strong>C.I./R.I.F.:</strong> {selectedBankDetail.idNumber}</p>
-                        <p><strong>Nro. Cuenta:</strong> {selectedBankDetail.accountNumber}</p>
+                      <div className="space-y-3 border-t pt-4 mt-4">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                          <h4 className="font-semibold text-green-800">Cuenta Seleccionada</h4>
+                        </div>
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4 space-y-2">
+                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
+                            <span className="font-medium text-xs sm:text-sm text-green-800">Banco:</span>
+                            <span className="text-xs sm:text-sm text-green-700 break-words">{selectedBankDetail.bank}</span>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
+                            <span className="font-medium text-xs sm:text-sm text-green-800">Titular:</span>
+                            <span className="text-xs sm:text-sm text-green-700 break-words">{selectedBankDetail.accountHolder}</span>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
+                            <span className="font-medium text-xs sm:text-sm text-green-800">C.I./R.I.F.:</span>
+                            <span className="text-xs sm:text-sm text-green-700 break-words">{selectedBankDetail.idNumber}</span>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
+                            <span className="font-medium text-xs sm:text-sm text-green-800">Nro. Cuenta:</span>
+                            <span className="text-xs sm:text-sm font-mono text-green-700 break-all">{selectedBankDetail.accountNumber}</span>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground text-center">
+                            Realiza la transferencia a esta cuenta y luego sube el comprobante
+                          </p>
+                          <Button 
+                            type="button"
+                            variant="outline" 
+                            size="sm" 
+                            className="w-full text-xs"
+                            onClick={() => {
+                              const accountInfo = `Banco: ${selectedBankDetail.bank}\nTitular: ${selectedBankDetail.accountHolder}\nC.I./R.I.F.: ${selectedBankDetail.idNumber}\nNro. Cuenta: ${selectedBankDetail.accountNumber}`;
+                              navigator.clipboard.writeText(accountInfo);
+                              toast({
+                                title: "Datos copiados",
+                                description: "La información de la cuenta ha sido copiada al portapapeles.",
+                              });
+                            }}
+                          >
+                            <Copy className="h-3 w-3 mr-1" />
+                            Copiar datos de la cuenta
+                          </Button>
+                        </div>
                       </div>
                     )}
                     
                     <Separator className="my-4"/>
-                    <Label htmlFor="paymentProof">Sube tu comprobante de pago:</Label>
-                    <Input id="paymentProof" type="file" onChange={handleFileChange} />
-                    {paymentProof && <p className="text-sm text-green-600">Archivo seleccionado: {paymentProof.name}</p>}
+                    <div className="space-y-2">
+                      <Label htmlFor="paymentProof" className="text-sm font-medium">
+                        Sube tu comprobante de pago:
+                      </Label>
+                      <div className="space-y-2">
+                        <Input 
+                          id="paymentProof" 
+                          type="file" 
+                          onChange={handleFileChange}
+                          accept="image/*,.pdf"
+                          className="cursor-pointer"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Formatos permitidos: JPG, PNG, GIF, PDF. Máximo 5MB.
+                        </p>
+                      </div>
+                      {paymentProof && (
+                        <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-md">
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-green-800">
+                              Archivo seleccionado: {paymentProof.name}
+                            </p>
+                            <p className="text-xs text-green-600">
+                              Tamaño: {(paymentProof.size / 1024 / 1024).toFixed(2)}MB
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               )}
 
-              <div className="text-lg font-semibold p-4 bg-muted/50 rounded-lg">
-                <div className="w-full flex justify-between items-center text-xl font-bold">
+              <div className="text-base sm:text-lg font-semibold p-3 sm:p-4 bg-muted/50 rounded-lg">
+                <div className="w-full flex justify-between items-center text-lg sm:text-xl font-bold">
                     <span>Total a Pagar:</span>
                     <span className="text-primary">${finalPrice.toFixed(2)}</span>
                 </div>
               </div>
-              <div className="flex gap-4">
-                 <Button variant="outline" onClick={() => setStep('selectServices')} className="w-full">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                 <Button variant="outline" onClick={() => setStep('selectServices')} className="w-full sm:w-auto">
                     Atrás
                   </Button>
-                  <Button onClick={handlePaymentSubmit} disabled={!paymentMethod || (paymentMethod === 'transferencia' && (!paymentProof || !selectedBankDetail))} className="w-full" size="lg">
-                    Confirmar Cita
+                  <Button 
+                    onClick={handlePaymentSubmit} 
+                    disabled={isSubmitting || !paymentMethod || (paymentMethod === 'transferencia' && (!paymentProof || !selectedBankDetail))} 
+                    className="w-full sm:flex-1" 
+                    size="lg"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="animate-spin h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                        <span className="text-sm sm:text-base">{uploadProgress || 'Procesando...'}</span>
+                      </>
+                    ) : (
+                      'Confirmar Cita'
+                    )}
                   </Button>
+                  
+                  {/* Mensaje de ayuda cuando el botón está deshabilitado */}
+                  {paymentMethod === 'transferencia' && (!paymentProof || !selectedBankDetail) && !isSubmitting && (
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground">
+                        {!selectedBankDetail && !paymentProof && "Selecciona una cuenta bancaria y sube el comprobante de pago."}
+                        {!selectedBankDetail && paymentProof && "Selecciona una cuenta bancaria."}
+                        {selectedBankDetail && !paymentProof && "Sube el comprobante de pago."}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {/* Indicador de progreso durante el procesamiento */}
+                  {isSubmitting && (
+                    <div className="text-center space-y-2">
+                      <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>{uploadProgress || 'Procesando tu solicitud...'}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Por favor, no cierres esta página mientras se procesa tu cita.
+                      </p>
+                    </div>
+                  )}
               </div>
             </CardContent>
           </>
@@ -640,7 +911,6 @@ export default function DoctorProfilePage() {
     }
   }
 
-
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <HeaderWrapper />
@@ -686,8 +956,34 @@ export default function DoctorProfilePage() {
               </div>
           </Card>
           
-          <Card>
+          <Card className="mb-8">
               {renderStepContent()}
+          </Card>
+
+          {/* Sección de Valoraciones al final */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="text-xl">Valoraciones de Pacientes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DoctorReviews 
+                doctor={doctor} 
+                onReviewAdded={() => {
+                  // Recargar los datos del médico para actualizar rating y reviewCount
+                  const fetchDoctorData = async () => {
+                    try {
+                      const updatedDoctor = await firestoreService.getDoctor(doctor.id);
+                      if (updatedDoctor) {
+                        setDoctor(updatedDoctor);
+                      }
+                    } catch (error) {
+                      console.error('Error updating doctor data:', error);
+                    }
+                  };
+                  fetchDoctorData();
+                }}
+              />
+            </CardContent>
           </Card>
 
         </div>

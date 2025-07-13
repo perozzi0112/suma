@@ -260,6 +260,25 @@ export const appointments: Appointment[] = [
     paymentMethod: 'efectivo', paymentStatus: 'Pendiente', paymentProof: null,
     attendance: 'Pendiente', patientConfirmationStatus: 'Pendiente', clinicalNotes: '', prescription: '', readByDoctor: true, readByPatient: true,
   },
+  // Citas adicionales con pago en efectivo para probar
+  {
+    id: "appt13", patientId: "pat4", patientName: "Carlos Briceño", doctorName: "Dr. Ana Rodriguez", doctorId: '1',
+    date: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0], time: "16:00",
+    services: [ { id: 's101', name: "Consulta Cardiológica", price: 50 } ],
+    consultationFee: 50,
+    totalPrice: 100, 
+    paymentMethod: 'efectivo', paymentStatus: 'Pendiente', paymentProof: null,
+    attendance: 'Pendiente', patientConfirmationStatus: 'Pendiente', clinicalNotes: '', prescription: '', readByDoctor: true, readByPatient: true,
+  },
+  {
+    id: "appt14", patientId: "pat3", patientName: "Maria Castillo", doctorName: "Dr. Ana Rodriguez", doctorId: '1',
+    date: new Date(new Date().setDate(new Date().getDate() + 4)).toISOString().split('T')[0], time: "11:30",
+    services: [ { id: 's102', name: "Electrocardiograma (EKG)", price: 30 } ],
+    consultationFee: 50,
+    totalPrice: 80, 
+    paymentMethod: 'efectivo', paymentStatus: 'Pendiente', paymentProof: null,
+    attendance: 'Pendiente', patientConfirmationStatus: 'Pendiente', clinicalNotes: '', prescription: '', readByDoctor: true, readByPatient: true,
+  },
   {
     id: "appt3", patientId: "pat3", patientName: "Maria Castillo", doctorName: "Dr. Ana Rodriguez", doctorId: '1',
     date: new Date(new Date().setDate(new Date().getDate() + 5)).toISOString().split('T')[0], time: "09:00",
@@ -288,6 +307,70 @@ export const appointments: Appointment[] = [
     paymentMethod: 'transferencia', paymentStatus: 'Pagado', paymentProof: 'https://placehold.co/400x200.png',
     attendance: 'No Asistió', patientConfirmationStatus: 'Confirmada', clinicalNotes: 'El paciente no asistió a la cita. Contactar para reprogramar.', prescription: '', readByDoctor: true, readByPatient: true,
   },
+  // Nuevas citas para mostrar historial de ingresos
+  {
+    id: "appt6", patientId: "pat1", patientName: "Elena Ríos", doctorName: "Dr. Ana Rodriguez", doctorId: '1',
+    date: new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().split('T')[0], time: "09:00",
+    services: [ { id: 's101', name: "Consulta Cardiológica", price: 50 } ],
+    consultationFee: 50,
+    totalPrice: 100, 
+    paymentMethod: 'efectivo', paymentStatus: 'Pagado', paymentProof: null,
+    attendance: 'Atendido', patientConfirmationStatus: 'Confirmada', clinicalNotes: 'Consulta de control, paciente estable.', prescription: 'Continuar tratamiento actual.', readByDoctor: true, readByPatient: true,
+  },
+  {
+    id: "appt7", patientId: "pat4", patientName: "Carlos Briceño", doctorName: "Dr. Ana Rodriguez", doctorId: '1',
+    date: new Date(new Date().setDate(new Date().getDate() - 2)).toISOString().split('T')[0], time: "15:00",
+    services: [ { id: 's102', name: "Electrocardiograma (EKG)", price: 30 } ],
+    consultationFee: 50,
+    totalPrice: 80, 
+    paymentMethod: 'transferencia', paymentStatus: 'Pagado', paymentProof: 'https://placehold.co/400x200.png',
+    attendance: 'Atendido', patientConfirmationStatus: 'Confirmada', clinicalNotes: 'EKG normal, continuar monitoreo.', prescription: 'Mantener medicación actual.', readByDoctor: true, readByPatient: true,
+  },
+  {
+    id: "appt8", patientId: "pat3", patientName: "Maria Castillo", doctorName: "Dr. Ana Rodriguez", doctorId: '1',
+    date: new Date(new Date().setDate(new Date().getDate() - 7)).toISOString().split('T')[0], time: "10:30",
+    services: [ { id: 's103', name: "Ecocardiograma", price: 80 } ],
+    consultationFee: 50,
+    totalPrice: 130, 
+    paymentMethod: 'efectivo', paymentStatus: 'Pagado', paymentProof: null,
+    attendance: 'Atendido', patientConfirmationStatus: 'Confirmada', clinicalNotes: 'Ecocardiograma normal, función cardíaca preservada.', prescription: 'Continuar tratamiento preventivo.', readByDoctor: true, readByPatient: true,
+  },
+  {
+    id: "appt9", patientId: "pat2", patientName: "Jorge Paez", doctorName: "Dr. Ana Rodriguez", doctorId: '1',
+    date: new Date(new Date().setDate(new Date().getDate() - 14)).toISOString().split('T')[0], time: "16:00",
+    services: [],
+    consultationFee: 50,
+    totalPrice: 50, 
+    paymentMethod: 'transferencia', paymentStatus: 'Pagado', paymentProof: 'https://placehold.co/400x200.png',
+    attendance: 'Atendido', patientConfirmationStatus: 'Confirmada', clinicalNotes: 'Consulta de seguimiento, evolución favorable.', prescription: 'Ajustar dosis de medicación.', readByDoctor: true, readByPatient: true,
+  },
+  {
+    id: "appt10", patientId: "pat5", patientName: "Paciente de Prueba", doctorName: "Dr. Ana Rodriguez", doctorId: '1',
+    date: new Date(new Date().setDate(new Date().getDate() - 21)).toISOString().split('T')[0], time: "11:30",
+    services: [ { id: 's101', name: "Consulta Cardiológica", price: 50 } ],
+    consultationFee: 50,
+    totalPrice: 100, 
+    paymentMethod: 'efectivo', paymentStatus: 'Pagado', paymentProof: null,
+    attendance: 'Atendido', patientConfirmationStatus: 'Confirmada', clinicalNotes: 'Primera consulta, evaluación inicial completa.', prescription: 'Iniciar tratamiento según protocolo.', readByDoctor: true, readByPatient: true,
+  },
+  {
+    id: "appt11", patientId: "pat6", patientName: "Luis Ramirez", doctorName: "Dr. Ana Rodriguez", doctorId: '1',
+    date: new Date(new Date().setDate(new Date().getDate() - 28)).toISOString().split('T')[0], time: "14:30",
+    services: [ { id: 's102', name: "Electrocardiograma (EKG)", price: 30 } ],
+    consultationFee: 50,
+    totalPrice: 80, 
+    paymentMethod: 'transferencia', paymentStatus: 'Pagado', paymentProof: 'https://placehold.co/400x200.png',
+    attendance: 'Atendido', patientConfirmationStatus: 'Confirmada', clinicalNotes: 'Control rutinario, EKG sin cambios.', prescription: 'Mantener tratamiento actual.', readByDoctor: true, readByPatient: true,
+  },
+  {
+    id: "appt12", patientId: "pat1", patientName: "Elena Ríos", doctorName: "Dr. Ana Rodriguez", doctorId: '1',
+    date: new Date(new Date().setDate(new Date().getDate() - 35)).toISOString().split('T')[0], time: "09:15",
+    services: [ { id: 's103', name: "Ecocardiograma", price: 80 } ],
+    consultationFee: 50,
+    totalPrice: 130, 
+    paymentMethod: 'efectivo', paymentStatus: 'Pagado', paymentProof: null,
+    attendance: 'Atendido', patientConfirmationStatus: 'Confirmada', clinicalNotes: 'Ecocardiograma de control anual, normal.', prescription: 'Continuar medicación preventiva.', readByDoctor: true, readByPatient: true,
+  },
 ];
 
 export const mockSellerPayments: SellerPayment[] = [
@@ -297,7 +380,8 @@ export const mockSellerPayments: SellerPayment[] = [
         { id: '1', name: "Dr. Ana Rodriguez", commissionAmount: 10 }, 
         { id: '2', name: "Dr. Carlos Sanchez", commissionAmount: 8 } 
     ],
-    paymentProofUrl: 'https://placehold.co/400x300.png', transactionId: 'TXN-SUMA-20240516-001'
+    paymentProofUrl: 'https://placehold.co/400x300.png', transactionId: 'TXN-SUMA-20240516-001',
+    status: 'paid'
   },
   {
     id: 'pay2', sellerId: '1', paymentDate: '2024-04-16', amount: 20.00, period: 'Marzo 2024',
@@ -306,16 +390,12 @@ export const mockSellerPayments: SellerPayment[] = [
         { id: '2', name: "Dr. Carlos Sanchez", commissionAmount: 8 },
         { id: '3', name: "Dr. Sofia Gomez", commissionAmount: 2 } 
     ],
-    paymentProofUrl: 'https://placehold.co/400x300.png', transactionId: 'TXN-SUMA-20240416-001'
+    paymentProofUrl: 'https://placehold.co/400x300.png', transactionId: 'TXN-SUMA-20240416-001',
+    status: 'paid'
   },
 ];
 
-export const marketingMaterials: MarketingMaterial[] = [
-    { id: 'mat1', type: 'image', title: 'Banner para Redes Sociales', description: 'Banner promocional para usar en Instagram, Facebook y otras redes.', url: 'https://placehold.co/1080x1080.png', thumbnailUrl: 'https://placehold.co/600x400.png' },
-    { id: 'mat2', type: 'video', title: 'Video Explicativo de SUMA', description: 'Video corto que explica los beneficios de la plataforma para los médicos.', url: 'https://placehold.co/1920x1080.png', thumbnailUrl: 'https://placehold.co/600x400.png' },
-    { id: 'mat3', type: 'file', title: 'Folleto Informativo (PDF)', description: 'Documento PDF con toda la información clave para presentar a los médicos.', url: '#', thumbnailUrl: 'https://placehold.co/600x400.png' },
-    { id: 'mat4', type: 'url', title: 'Artículo de Blog: Beneficios de la Telemedicina', description: 'Enlace a un artículo relevante que puedes compartir con los doctores.', url: '#', thumbnailUrl: 'https://placehold.co/600x400.png' },
-];
+export const marketingMaterials: MarketingMaterial[] = [];
 
 export const mockDoctorPayments: DoctorPayment[] = [
   { id: 'dp1', doctorId: '1', doctorName: 'Dr. Ana Rodriguez', date: '2024-05-28', amount: 50, status: 'Paid', paymentProofUrl: 'https://placehold.co/400x200.png', transactionId: 'TXN123456', readByAdmin: true },

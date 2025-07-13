@@ -57,7 +57,7 @@ export function DoctorCard({ doctor }: { doctor: Doctor }) {
 
   return (
     <Link href={`/doctors/${doctor.id}`} className="block h-full group">
-        <Card className="overflow-hidden transition-shadow duration-300 group-hover:shadow-lg w-full h-full flex flex-col relative">
+        <Card className="doctor-card overflow-hidden transition-shadow duration-300 group-hover:shadow-lg w-full h-full flex flex-col relative">
           <div className="absolute top-2 right-2 flex gap-1 z-10">
               <Popover>
                   <PopoverTrigger asChild>

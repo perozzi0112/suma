@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { useNotifications } from "@/lib/notifications";
 import { useDoctorNotifications } from "@/lib/doctor-notifications";
 import { useSellerNotifications } from "@/lib/seller-notifications";
+import { useChatNotifications } from "@/lib/chat-notifications";
 import * as firestoreService from "@/lib/firestoreService";
 import { Button } from "@/components/ui/button";
 import {
@@ -76,6 +77,7 @@ import { formatDistanceToNow, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { type AdminNotification, type DoctorNotification, type PatientNotification, type SellerNotification } from "@/lib/types";
+import { clearOtherUsersNotifications } from '@/lib/clear-notifications';
 
 
 export function Header() {
@@ -83,8 +85,17 @@ export function Header() {
   const { notifications, unreadCount, markAllAsRead } = useNotifications();
   const { doctorNotifications, doctorUnreadCount, markDoctorNotificationsAsRead } = useDoctorNotifications();
   const { sellerNotifications, sellerUnreadCount, markSellerNotificationsAsRead } = useSellerNotifications();
+  const { unreadChatCount } = useChatNotifications();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+
+  const clearNotifications = () => {
+    if (user?.id && user.role && user.role !== 'admin') {
+      clearOtherUsersNotifications(user.id, user.role);
+      // Recargar la página para limpiar las notificaciones en memoria
+      window.location.reload();
+    }
+  };
 
   const [adminNotifications, setAdminNotifications] = useState<AdminNotification[]>([]);
   const [adminUnreadCount, setAdminUnreadCount] = useState(0);
@@ -219,6 +230,7 @@ export function Header() {
   const patientNavLinks = [
     { href: "/find-a-doctor", label: "Buscar Médico" },
     { href: "/ai-assistant", label: "Asistente IA" },
+    { href: "/dashboard", label: "Mis Citas", unreadCount: unreadChatCount },
   ];
   
   const adminNavLinks = [
@@ -241,7 +253,7 @@ export function Header() {
     { href: "/doctor/dashboard?view=schedule", label: "Horario" },
     { href: "/doctor/dashboard?view=bank-details", label: "Cuentas" },
     { href: "/doctor/dashboard?view=coupons", label: "Cupones" },
-    { href: "/doctor/dashboard?view=chat", label: "Chat" },
+    { href: "/doctor/dashboard?view=chat", label: "Chat", unreadCount: unreadChatCount },
     { href: "/doctor/dashboard?view=support", label: "Soporte" },
   ];
 
@@ -271,49 +283,47 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
         <div className="flex items-center gap-2 font-bold text-lg">
-          <Stethoscope className="h-6 w-6 text-primary" />
-          <span className="font-headline">SUMA</span>
+          <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <Stethoscope className="h-6 w-6 text-primary" />
+            <span className="font-headline">SUMA</span>
+          </Link>
         </div>
         <nav className="hidden md:flex ml-auto items-center gap-1 flex-wrap">
-          {(!user || user.role === 'patient') && patientNavLinks.map((link) => (
-            <Button key={link.href} variant="ghost" asChild>
+          {user && user.role === 'admin' && pathname.startsWith('/admin') && adminNavLinks.map((link) => (
+            <Button key={link.href} variant={pathname.includes(link.href) ? 'secondary' : 'ghost'} asChild>
               <Link href={link.href}>{link.label}</Link>
             </Button>
           ))}
+          {user && user.role === 'doctor' && pathname.startsWith('/doctor') && doctorNavLinks.map((link) => (
+            <Button key={link.href} variant={pathname.includes(link.href) ? 'secondary' : 'ghost'} asChild className="relative">
+              <Link href={link.href}>
+                {link.label}
+                {link.unreadCount && link.unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold">
+                    {link.unreadCount}
+                  </span>
+                )}
+              </Link>
+            </Button>
+          ))}
+          {user && user.role === 'seller' && pathname.startsWith('/seller') && sellerNavLinks.map((link) => (
+            <Button key={link.href} variant={pathname.includes(link.href) ? 'secondary' : 'ghost'} asChild>
+              <Link href={link.href}>{link.label}</Link>
+            </Button>
+          ))}
+          {(!user || user.role === 'patient') && patientNavLinks.map((link) => (
+            <Button key={link.href} variant="ghost" asChild className="relative">
+              <Link href={link.href}>
+                {link.label}
+                {link.unreadCount && link.unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold">
+                    {link.unreadCount}
+                  </span>
+                )}
+              </Link>
+            </Button>
+          ))}
           
-          {user?.role === 'admin' && pathname.startsWith('/admin') && adminNavLinks.map((link) => {
-            const currentViewParam = searchParams.get('view') || 'overview';
-            const linkView = new URL(link.href, 'http://dummy.com').searchParams.get('view');
-            const isActive = currentViewParam === linkView;
-            return (
-              <Button key={link.href} variant={isActive ? 'secondary' : 'ghost'} asChild size="sm">
-                <Link href={link.href}>{link.label}</Link>
-              </Button>
-            );
-          })}
-          
-          {user?.role === 'doctor' && pathname.startsWith('/doctor') && doctorNavLinks.map((link) => {
-            const currentViewParam = searchParams.get('view') || 'appointments';
-            const linkView = new URL(link.href, 'http://dummy.com').searchParams.get('view');
-            const isActive = currentViewParam === linkView;
-            return (
-              <Button key={link.href} variant={isActive ? 'secondary' : 'ghost'} size="sm" asChild>
-                <Link href={link.href}>{link.label}</Link>
-              </Button>
-            );
-          })}
-
-          {user?.role === 'seller' && pathname.startsWith('/seller') && sellerNavLinks.map((link) => {
-            const currentViewParam = searchParams.get('view') || 'referrals';
-            const linkView = new URL(link.href, 'http://dummy.com').searchParams.get('view');
-            const isActive = currentViewParam === linkView;
-            return (
-              <Button key={link.href} variant={isActive ? 'secondary' : 'ghost'} size="sm" asChild>
-                <Link href={link.href}>{link.label}</Link>
-              </Button>
-            );
-          })}
-
           {user && isAdmin && (
             <Popover onOpenChange={(open) => { if (open && adminUnreadCount > 0) markAdminNotificationsAsRead() }}>
               <PopoverTrigger asChild>
@@ -411,7 +421,7 @@ export function Header() {
                 </div>
                 {sellerNotifications.length > 0 ? (
                   <div className="space-y-1 max-h-80 overflow-y-auto">
-                    {sellerNotifications.map(n => (
+                    {sellerNotifications.slice(0, 5).map(n => (
                       <Link href={n.link} key={n.id} className={cn("p-2 rounded-lg flex items-start gap-3 hover:bg-muted/50", !n.read && "bg-blue-50")}>
                         <div className="mt-1">
                           {getSellerNotificationIcon(n.type)}
@@ -423,6 +433,11 @@ export function Header() {
                         </div>
                       </Link>
                     ))}
+                    {sellerNotifications.length > 5 && (
+                      <div className="text-center py-2 text-xs text-muted-foreground">
+                        Mostrando las últimas 5 de {sellerNotifications.length} notificaciones
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <p className="text-sm text-center text-muted-foreground py-4">No tienes notificaciones.</p>
@@ -455,7 +470,7 @@ export function Header() {
                 </div>
                 {notifications.length > 0 ? (
                   <div className="space-y-1 max-h-80 overflow-y-auto">
-                    {notifications.map(n => (
+                    {notifications.slice(0, 5).map(n => (
                       <Link href={n.link} key={n.id} className={cn("p-2 rounded-lg flex items-start gap-3 hover:bg-muted/50", !n.read && "bg-primary/10")}>
                         <div className="mt-1">
                           {getPatientNotificationIcon(n.type)}
@@ -467,6 +482,11 @@ export function Header() {
                         </div>
                       </Link>
                     ))}
+                    {notifications.length > 5 && (
+                      <div className="text-center py-2 text-xs text-muted-foreground">
+                        Mostrando las últimas 5 de {notifications.length} notificaciones
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <p className="text-sm text-center text-muted-foreground py-4">No tienes notificaciones.</p>
@@ -661,7 +681,7 @@ export function Header() {
                 </div>
                 {sellerNotifications.length > 0 ? (
                   <div className="space-y-1 max-h-80 overflow-y-auto">
-                    {sellerNotifications.map(n => (
+                    {sellerNotifications.slice(0, 5).map(n => (
                       <Link href={n.link} key={n.id} className={cn("p-2 rounded-lg flex items-start gap-3 hover:bg-muted/50", !n.read && "bg-blue-50")}>
                         <div className="mt-1">
                           {getSellerNotificationIcon(n.type)}
@@ -673,6 +693,11 @@ export function Header() {
                         </div>
                       </Link>
                     ))}
+                    {sellerNotifications.length > 5 && (
+                      <div className="text-center py-2 text-xs text-muted-foreground">
+                        Mostrando las últimas 5 de {sellerNotifications.length} notificaciones
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <p className="text-sm text-center text-muted-foreground py-4">No tienes notificaciones.</p>
@@ -823,6 +848,7 @@ export function Header() {
                             </Link>
                           </SheetClose>
                        )}
+
                        <Button onClick={() => { logout(); }} className="w-full">
                          <LogOut className="mr-2 h-4 w-4" /> Cerrar Sesión
                        </Button>

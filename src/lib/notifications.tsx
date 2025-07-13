@@ -48,6 +48,19 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
+  // Limpiar notificaciones de otros usuarios cuando cambie el usuario
+  useEffect(() => {
+    if (user?.id && user.role === 'patient') {
+      // Limpiar notificaciones de otros usuarios
+      const allKeys = Object.keys(localStorage);
+      const patientNotificationKeys = allKeys.filter(key => 
+        key.startsWith('suma-patient-notifications-') && 
+        key !== getNotificationStorageKey(user.id)
+      );
+      patientNotificationKeys.forEach(key => localStorage.removeItem(key));
+    }
+  }, [user]);
+
 
   const checkAndSetNotifications = useCallback((appointments: Appointment[]) => {
     if (!user?.id || user.role !== 'patient') return;
@@ -193,24 +206,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   
   const value = { notifications, unreadCount, checkAndSetNotifications, markAllAsRead };
 
-  // --- NUEVO: Actualización automática de notificaciones cada 30 segundos ---
-  useEffect(() => {
-    let interval: NodeJS.Timeout | undefined;
-    async function fetchAndCheck() {
-      if (user?.id && user.role === 'patient') {
-        // Importación dinámica para evitar ciclo circular
-        const { getPatientAppointments } = await import('./firestoreService');
-        const appointments = await getPatientAppointments(user.id);
-        checkAndSetNotifications(appointments);
-      }
-    }
-    if (user?.id && user.role === 'patient') {
-      interval = setInterval(fetchAndCheck, 30000); // cada 30 segundos
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [user, checkAndSetNotifications]);
+
 
   return (
     <NotificationContext.Provider value={value}>

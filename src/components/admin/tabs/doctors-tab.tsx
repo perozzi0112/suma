@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import type { Doctor, Seller } from "@/lib/types";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
@@ -104,7 +104,7 @@ export function DoctorsTab() {
       specialty: formData.get('specialty') as string,
       city: formData.get('city') as string,
       address: formData.get('address') as string,
-      sellerId: (formData.get('sellerId') as string) || null,
+      sellerId: (formData.get('sellerId') as string) === 'none' ? null : (formData.get('sellerId') as string),
       slotDuration: formData.get('slotDuration') as string,
       consultationFee: formData.get('consultationFee') as string,
     };
@@ -257,60 +257,181 @@ export function DoctorsTab() {
       </Card>
       
       <Dialog open={isDoctorDialogOpen} onOpenChange={setIsDoctorDialogOpen}>
-        <DialogContent className="sm:max-w-[625px]">
+        <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingDoctor ? 'Editar Médico' : 'Añadir Nuevo Médico'}</DialogTitle>
-            <DialogDescription>{editingDoctor ? `Editando el perfil de ${editingDoctor.name}.` : 'Completa los detalles para registrar un nuevo médico.'}</DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl">
+              {editingDoctor ? 'Editar Médico' : 'Añadir Nuevo Médico'}
+            </DialogTitle>
+            <DialogDescription className="text-sm sm:text-base">
+              {editingDoctor ? `Editando el perfil de ${editingDoctor.name}.` : 'Completa los detalles para registrar un nuevo médico.'}
+            </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSaveDoctor}>
-            <div className="grid gap-4 py-4">
-              <div><Label htmlFor="name">Nombre Completo</Label><Input id="name" name="name" defaultValue={editingDoctor?.name} required/></div>
-              <div><Label htmlFor="email">Correo Electrónico</Label><Input id="email" name="email" type="email" defaultValue={editingDoctor?.email} required/></div>
-              <div><Label htmlFor="password">Nueva Contraseña</Label><Input id="password" name="password" type="password" placeholder={editingDoctor ? 'Dejar en blanco para no cambiar' : 'Requerido'} /></div>
-              <div><Label htmlFor="confirmPassword">Confirmar Contraseña</Label><Input id="confirmPassword" name="confirmPassword" type="password"/></div>
+          <form onSubmit={handleSaveDoctor} className="space-y-4">
+            {/* Información Personal */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-muted-foreground border-b pb-2">Información Personal</h3>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="specialty">Especialidad</Label>
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-sm font-medium">Nombre Completo</Label>
+                <Input 
+                  id="name" 
+                  name="name" 
+                  defaultValue={editingDoctor?.name} 
+                  required
+                  className="w-full"
+                  placeholder="Dr. Juan Pérez"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium">Correo Electrónico</Label>
+                <Input 
+                  id="email" 
+                  name="email" 
+                  type="email" 
+                  defaultValue={editingDoctor?.email} 
+                  required
+                  className="w-full"
+                  placeholder="doctor@ejemplo.com"
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-sm font-medium">Nueva Contraseña</Label>
+                  <Input 
+                    id="password" 
+                    name="password" 
+                    type="password" 
+                    placeholder={editingDoctor ? 'Dejar en blanco para no cambiar' : 'Requerido'}
+                    className="w-full"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword" className="text-sm font-medium">Confirmar Contraseña</Label>
+                  <Input 
+                    id="confirmPassword" 
+                    name="confirmPassword" 
+                    type="password"
+                    className="w-full"
+                    placeholder="Confirmar contraseña"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Información Profesional */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-muted-foreground border-b pb-2">Información Profesional</h3>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="specialty" className="text-sm font-medium">Especialidad</Label>
                   <Select name="specialty" defaultValue={editingDoctor?.specialty}>
-                      <SelectTrigger><SelectValue placeholder="Selecciona..."/></SelectTrigger>
-                      <SelectContent>{specialties.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecciona una especialidad"/>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {specialties.length > 0 ? (
+                        specialties.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)
+                      ) : (
+                        <SelectItem value="no-specialties" disabled>No hay especialidades disponibles</SelectItem>
+                      )}
+                    </SelectContent>
                   </Select>
                 </div>
-                <div>
-                    <Label htmlFor="city">Ciudad</Label>
-                    <Select name="city" defaultValue={editingDoctor?.city}>
-                        <SelectTrigger><SelectValue placeholder="Selecciona..."/></SelectTrigger>
-                        <SelectContent>{cities.map(c => <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
-                    </Select>
+                <div className="space-y-2">
+                  <Label htmlFor="city" className="text-sm font-medium">Ciudad</Label>
+                  <Select name="city" defaultValue={editingDoctor?.city}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecciona una ciudad"/>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {cities.length > 0 ? (
+                        cities.map(c => <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>)
+                      ) : (
+                        <SelectItem value="no-cities" disabled>No hay ciudades disponibles</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
-              <div><Label htmlFor="address">Dirección del Consultorio</Label><Input id="address" name="address" defaultValue={editingDoctor?.address} required/></div>
+              <div className="space-y-2">
+                <Label htmlFor="address" className="text-sm font-medium">Dirección del Consultorio</Label>
+                <Input 
+                  id="address" 
+                  name="address" 
+                  defaultValue={editingDoctor?.address} 
+                  required
+                  className="w-full"
+                  placeholder="Av. Principal 123, Centro"
+                />
+              </div>
+            </div>
+
+            {/* Configuración de Consultas */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-muted-foreground border-b pb-2">Configuración de Consultas</h3>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="consultationFee">Tarifa de Consulta ($)</Label>
-                  <Input id="consultationFee" name="consultationFee" type="number" defaultValue={editingDoctor?.consultationFee || 20} required />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="consultationFee" className="text-sm font-medium">Tarifa de Consulta ($)</Label>
+                  <Input 
+                    id="consultationFee" 
+                    name="consultationFee" 
+                    type="number" 
+                    defaultValue={editingDoctor?.consultationFee || 20} 
+                    required
+                    className="w-full"
+                    min="0"
+                    step="0.01"
+                  />
                 </div>
-                <div>
-                  <Label htmlFor="slotDuration">Duración por Cita (min)</Label>
-                  <Input id="slotDuration" name="slotDuration" type="number" defaultValue={editingDoctor?.slotDuration || 30} required />
+                <div className="space-y-2">
+                  <Label htmlFor="slotDuration" className="text-sm font-medium">Duración por Cita (min)</Label>
+                  <Input 
+                    id="slotDuration" 
+                    name="slotDuration" 
+                    type="number" 
+                    defaultValue={editingDoctor?.slotDuration || 30} 
+                    required
+                    className="w-full"
+                    min="5"
+                    step="5"
+                  />
                 </div>
               </div>
+            </div>
 
-              <div>
-                <Label htmlFor="sellerId">Vendedora Asignada</Label>
-                <Select name="sellerId" defaultValue={editingDoctor?.sellerId || ''}>
-                  <SelectTrigger><SelectValue placeholder="Ninguna"/></SelectTrigger>
+            {/* Asignación de Vendedora */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-muted-foreground border-b pb-2">Asignación</h3>
+              
+              <div className="space-y-2">
+                <Label htmlFor="sellerId" className="text-sm font-medium">Vendedora Asignada</Label>
+                <Select name="sellerId" defaultValue={editingDoctor?.sellerId || 'none'}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Selecciona una vendedora"/>
+                  </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Ninguna</SelectItem>
+                    <SelectItem value="none">Ninguna</SelectItem>
                     {sellers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
             </div>
-            <DialogFooter><DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose><Button type="submit">Guardar</Button></DialogFooter>
+            
+            <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-4">
+              <DialogClose asChild>
+                <Button type="button" variant="outline" className="w-full sm:w-auto">
+                  Cancelar
+                </Button>
+              </DialogClose>
+              <Button type="submit" className="w-full sm:w-auto">
+                {editingDoctor ? 'Actualizar' : 'Registrar'} Médico
+              </Button>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
@@ -325,7 +446,7 @@ export function DoctorsTab() {
             </AlertDialogHeader>
             <AlertDialogFooter>
                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDeleteItem} className={cn(buttonVariants({ variant: 'destructive' }))}>
+                <AlertDialogAction onClick={handleDeleteItem} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                     Sí, Eliminar
                 </AlertDialogAction>
             </AlertDialogFooter>

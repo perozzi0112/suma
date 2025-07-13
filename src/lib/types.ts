@@ -36,6 +36,7 @@ export type Expense = {
   date: string; // YYYY-MM-DD
   description: string;
   amount: number;
+  category?: string;
 };
 
 export type DaySchedule = {
@@ -114,6 +115,7 @@ export type Patient = {
     city: string | null;
     favoriteDoctorIds?: string[];
     profileImage: string | null;
+    profileCompleted?: boolean; // Indica si el paciente ha completado su perfil
 };
 
 export type Appointment = {
@@ -137,6 +139,9 @@ export type Appointment = {
   messages?: ChatMessage[];
   readByDoctor?: boolean;
   readByPatient?: boolean;
+  unreadMessagesByDoctor?: number;
+  unreadMessagesByPatient?: number;
+  lastMessageTimestamp?: string;
 };
 
 export type IncludedDoctorCommission = {
@@ -154,6 +159,7 @@ export type SellerPayment = {
   includedDoctors: IncludedDoctorCommission[];
   paymentProofUrl: string;
   transactionId: string;
+  status: 'pending' | 'paid'; // NUEVO: estado de la comisión
   readBySeller?: boolean;
 };
 
@@ -177,6 +183,10 @@ export type DoctorPayment = {
   transactionId: string;
   readByAdmin?: boolean;
   readByDoctor?: boolean;
+  // Nuevos campos para facilitar la verificación del administrador
+  paymentMethod?: string; // 'transferencia', 'pago_movil', 'efectivo', 'otro'
+  targetAccount?: string; // Cuenta bancaria de SUMA seleccionada
+  paymentDescription?: string; // Descripción detallada del pago
 };
 
 
@@ -267,3 +277,16 @@ export type AppSettings = {
     coupons: Coupon[];
     companyExpenses: CompanyExpense[];
 }
+
+export type DoctorReview = {
+    id: string;
+    doctorId: string;
+    patientId: string;
+    patientName: string;
+    patientProfileImage?: string | null;
+    rating: number; // 1-5 estrellas
+    comment: string;
+    date: string; // ISO string
+    appointmentId?: string; // Opcional: si la valoración está relacionada con una cita
+    isVerified: boolean; // Si el paciente realmente tuvo una cita con el médico
+};
