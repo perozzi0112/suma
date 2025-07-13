@@ -272,8 +272,8 @@ export default function FindDoctorPage() {
           <div className="container py-6 md:py-8">
             <div className="text-center mb-6">
               <h1 className="text-2xl md:text-4xl font-bold font-headline mb-2">
-                Encuentra a Tu Especialista
-              </h1>
+              Encuentra a Tu Especialista
+            </h1>
               <p className="text-muted-foreground text-sm md:text-lg max-w-2xl mx-auto">
                 Conectamos pacientes con los mejores médicos especialistas.
               </p>
@@ -447,7 +447,7 @@ export default function FindDoctorPage() {
                         <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
                           <DollarSign className="h-3 w-3" />
                           Precio: ${priceRange[0]} - ${priceRange[1]}
-                        </label>
+                </label>
                         <Slider
                           value={priceRange}
                           onValueChange={setPriceRange}
@@ -583,7 +583,7 @@ export default function FindDoctorPage() {
                           "p-2 rounded-full",
                           specialty === s ? "bg-primary/10" : colorClass
                         )}>
-                          <Icon className="h-6 w-6" />
+                        <Icon className="h-6 w-6" />
                         </div>
                         <span className="text-sm font-medium text-center leading-tight">{s}</span>
                         <Badge variant="secondary" className="text-xs">
@@ -638,10 +638,10 @@ export default function FindDoctorPage() {
                   <div className="flex items-center gap-2 md:gap-4 text-muted-foreground text-sm">
                     <span className="flex items-center gap-1 md:gap-2">
                       <Users className="h-3 w-3 md:h-4 md:w-4" />
-                      {filteredDoctors.length}{" "}
-                      {filteredDoctors.length === 1
-                        ? "médico encontrado"
-                        : "médicos encontrados"}
+                    {filteredDoctors.length}{" "}
+                    {filteredDoctors.length === 1
+                      ? "médico encontrado"
+                      : "médicos encontrados"}
                     </span>
                     {filteredDoctors.length > 0 && (
                       <span className="flex items-center gap-1 md:gap-2">
@@ -692,35 +692,35 @@ export default function FindDoctorPage() {
 
               {/* Médicos mejor valorados */}
               {topRatedDoctors.length > 0 && (
-                <section>
+              <section>
                   <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 flex items-center gap-2">
                     <Star className="text-yellow-400 fill-yellow-400 h-5 w-5 md:h-6 md:w-6" /> 
                     Médicos Mejor Valorados
                     <Badge variant="secondary" className="ml-2 text-xs">
                       ⭐ 4.9+
                     </Badge>
-                  </h2>
-                  <Carousel
-                    opts={{
-                      align: "start",
-                      loop: false,
-                    }}
-                    className="w-full"
-                  >
-                    <CarouselContent>
-                      {topRatedDoctors.map((doctor) => (
-                        <CarouselItem
-                          key={doctor.id}
-                          className="md:basis-1/2 lg:basis-1/3"
-                        >
-                          <DoctorCard doctor={doctor} />
-                        </CarouselItem>
-                      ))}
-                    </CarouselContent>
-                    <CarouselPrevious className="hidden sm:flex" />
-                    <CarouselNext className="hidden sm:flex" />
-                  </Carousel>
-                </section>
+                </h2>
+                <Carousel
+                  opts={{
+                    align: "start",
+                    loop: false,
+                  }}
+                  className="w-full"
+                >
+                  <CarouselContent>
+                    {topRatedDoctors.map((doctor) => (
+                      <CarouselItem
+                        key={doctor.id}
+                        className="md:basis-1/2 lg:basis-1/3"
+                      >
+                        <DoctorCard doctor={doctor} />
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="hidden sm:flex" />
+                  <CarouselNext className="hidden sm:flex" />
+                </Carousel>
+              </section>
               )}
 
               {/* Belleza y bienestar */}

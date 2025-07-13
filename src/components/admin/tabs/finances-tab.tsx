@@ -67,7 +67,7 @@ export function FinancesTab() {
       const [doctorPayments, sellerPayments, doctors, sellers] = await Promise.all([
         firestoreService.getDoctorPayments(),
         firestoreService.getSellerPayments(),
-        firestoreService.getDoctors(),
+            firestoreService.getDoctors(),
         firestoreService.getSellers()
       ]);
 
@@ -106,7 +106,7 @@ export function FinancesTab() {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
   };
 
@@ -189,7 +189,7 @@ export function FinancesTab() {
         return 'Desconocido';
     }
   };
-
+  
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -218,7 +218,7 @@ export function FinancesTab() {
       </div>
     );
   }
-
+  
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -336,7 +336,7 @@ export function FinancesTab() {
 
       {/* Sección de Pagos Pendientes */}
       {pendingPayments.length > 0 && (
-        <Card>
+      <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-orange-600" />
@@ -345,8 +345,8 @@ export function FinancesTab() {
             <CardDescription>
               {pendingPayments.length} pagos requieren tu revisión y aprobación
             </CardDescription>
-          </CardHeader>
-          <CardContent>
+        </CardHeader>
+        <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {pendingPayments.map((payment) => (
                 <Card key={payment.id} className="border-l-4 border-l-orange-500 hover:border-l-orange-600 transition-colors">
@@ -388,7 +388,7 @@ export function FinancesTab() {
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Cuenta SUMA:</span>
                           <span className="text-xs">{payment.targetAccount.split('-')[0]}</span>
-                        </div>
+            </div>
                       )}
                     </div>
                     
@@ -405,8 +405,8 @@ export function FinancesTab() {
                 </Card>
               ))}
             </div>
-          </CardContent>
-        </Card>
+        </CardContent>
+      </Card>
       )}
 
       {/* Gráfico de análisis */}
@@ -424,13 +424,13 @@ export function FinancesTab() {
               <p>No hay datos suficientes para mostrar el gráfico</p>
               <p className="text-sm">Los datos aparecerán cuando se registren pagos</p>
             </div>
-          </div>
+            </div>
         </CardContent>
       </Card>
 
       {/* Mensaje cuando no hay datos */}
       {stats.totalRevenue === 0 && stats.totalExpenses === 0 && pendingPayments.length === 0 && (
-        <Card>
+      <Card>
           <CardContent className="pt-6">
             <div className="text-center py-8">
               <Wallet className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -494,9 +494,9 @@ export function FinancesTab() {
                       <div className="flex justify-between">
                         <span className="font-medium">Cuenta SUMA:</span>
                         <span className="text-sm">{selectedPayment.targetAccount}</span>
-                      </div>
+            </div>
                     )}
-                  </CardContent>
+        </CardContent>
                 </Card>
 
                 <Card>
@@ -509,21 +509,21 @@ export function FinancesTab() {
                         <pre className="text-sm whitespace-pre-wrap font-mono">
                           {selectedPayment.paymentDescription}
                         </pre>
-                      </div>
+            </div>
                     ) : (
                       <p className="text-muted-foreground">No hay descripción adicional</p>
                     )}
                   </CardContent>
-                </Card>
+      </Card>
               </div>
 
               {/* Comprobante de pago */}
               {selectedPayment.paymentProofUrl && (
-                <Card>
+      <Card>
                   <CardHeader>
                     <CardTitle className="text-lg">Comprobante de Pago</CardTitle>
                   </CardHeader>
-                  <CardContent>
+        <CardContent>
                     <div className="relative w-full h-96 bg-muted rounded-lg overflow-hidden">
                       {selectedPayment.paymentProofUrl.startsWith('data:') ? (
                         <Image 
@@ -543,8 +543,8 @@ export function FinancesTab() {
                         />
                       )}
                     </div>
-                  </CardContent>
-                </Card>
+        </CardContent>
+      </Card>
               )}
 
               {/* Acciones */}
@@ -587,4 +587,4 @@ export function FinancesTab() {
       </Dialog>
     </div>
   );
-} 
+}

@@ -214,7 +214,7 @@ export function BankManagementCard({ bankDetails, onAddBankDetail, onUpdateBankD
                                             <TableCell className="font-mono">{bank.idNumber}</TableCell>
                                             <TableCell className="font-mono">{formatAccountNumber(bank.accountNumber)}</TableCell>
                                             <TableCell className="max-w-32">
-                                                <span className="truncate block" title={bank.description}>
+                                                <span className="truncate block" title={bank.description || undefined}>
                                                     {bank.description || '-'}
                                                 </span>
                                             </TableCell>
