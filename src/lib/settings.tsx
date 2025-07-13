@@ -87,7 +87,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
                     {
                         id: 'welcome-2024',
                         code: 'WELCOME2024',
-                        discountType: 'percentage',
+                        discountType: 'percentage' as const,
                         value: 20,
                         scope: 'general'
                     }
