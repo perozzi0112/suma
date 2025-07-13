@@ -4,7 +4,7 @@ import { app } from './firebase';
 // Inicializar Firebase Messaging solo en el cliente
 let messaging: any = null;
 
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
   try {
     messaging = getMessaging(app);
   } catch (error) {
