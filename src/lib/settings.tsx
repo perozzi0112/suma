@@ -87,13 +87,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
                     {
                         id: 'welcome-2024',
                         code: 'WELCOME2024',
-                        discount: 20,
-                        type: 'percentage',
-                        validFrom: new Date('2024-01-01'),
-                        validTo: new Date('2024-12-31'),
-                        maxUses: 100,
-                        currentUses: 0,
-                        isActive: true
+                        discountType: 'percentage',
+                        value: 20,
+                        scope: 'general'
                     }
                 ],
                 companyBankDetails: [],
