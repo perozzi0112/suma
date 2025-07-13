@@ -26,9 +26,21 @@ export type Service = {
 export type Coupon = {
   id: string;
   code: string;
+  description: string;
   discountType: 'percentage' | 'fixed';
-  value: number;
-  scope: 'general' | string; // 'general' or doctorId
+  discountValue: number;
+  minAmount?: number;
+  maxDiscount?: number;
+  validFrom: any; // Firestore Timestamp
+  validTo: any; // Firestore Timestamp
+  maxUses?: number;
+  isActive: boolean;
+  createdAt: any; // Firestore Timestamp
+  updatedAt: any; // Firestore Timestamp
+  scopeType: 'all' | 'specialty' | 'city' | 'specific';
+  scopeSpecialty?: string;
+  scopeCity?: string;
+  scopeDoctors?: string[];
 };
 
 export type Expense = {

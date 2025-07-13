@@ -87,9 +87,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
                     {
                         id: 'welcome-2024',
                         code: 'WELCOME2024',
+                        description: 'Cupón de bienvenida',
                         discountType: 'percentage' as const,
-                        value: 20,
-                        scope: 'general'
+                        discountValue: 20,
+                        validFrom: new Date(),
+                        validTo: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 año
+                        isActive: true,
+                        createdAt: new Date(),
+                        updatedAt: new Date(),
+                        scopeType: 'all' as const
                     }
                 ],
                 companyBankDetails: [],
@@ -159,8 +165,19 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const updateSetting = useCallback(async (key: keyof AppSettings, value: any) => {
     if (!settings) return;
-    const newSettings = { ...settings, [key]: value };
-    await firestoreService.updateSettings({ [key]: value });
+    
+    // Filtrar campos undefined del valor antes de enviar a Firestore
+    const cleanValue = value;
+    if (typeof cleanValue === 'object' && cleanValue !== null) {
+      Object.keys(cleanValue).forEach(k => {
+        if (cleanValue[k] === undefined) {
+          delete cleanValue[k];
+        }
+      });
+    }
+    
+    const newSettings = { ...settings, [key]: cleanValue };
+    await firestoreService.updateSettings({ [key]: cleanValue });
     setSettings(newSettings);
   }, [settings]);
   
@@ -183,9 +200,19 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         return;
     }
 
-    const newItem = (listName === 'companyExpenses' || listName === 'companyBankDetails' || listName === 'coupons')
-      ? { ...item, id: `${listName}-${Date.now()}` }
-      : item;
+    let newItem;
+    if (listName === 'companyExpenses' || listName === 'companyBankDetails' || listName === 'coupons') {
+        // Limpiar campos undefined del item antes de crear el nuevo elemento
+        const cleanItem = { ...item };
+        Object.keys(cleanItem).forEach(k => {
+            if (cleanItem[k] === undefined) {
+                delete cleanItem[k];
+            }
+        });
+        newItem = { ...cleanItem, id: `${listName}-${Date.now()}` };
+    } else {
+        newItem = item;
+    }
 
     const newList = [...list, newItem];
     await updateSetting(listName, newList);
