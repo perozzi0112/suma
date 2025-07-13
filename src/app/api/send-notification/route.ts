@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
         notification: {
           icon: '/icon-192x192.png',
           color: '#2563eb',
-          priority: 'high',
+          priority: 'high' as const,
         },
       },
       apns: {
