@@ -3,22 +3,37 @@ import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getMessaging } from 'firebase-admin/messaging';
 import { getFirestore } from 'firebase-admin/firestore';
 
-// Inicializar Firebase Admin si no está inicializado
-if (!getApps().length) {
-  initializeApp({
-    credential: cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    }),
-  });
-}
+// Inicializar Firebase Admin si no está inicializado y las credenciales están disponibles
+let messaging: any = null;
+let db: any = null;
 
-const messaging = getMessaging();
-const db = getFirestore();
+if (!getApps().length && process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
+  try {
+    initializeApp({
+      credential: cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      }),
+    });
+    
+    messaging = getMessaging();
+    db = getFirestore();
+  } catch (error) {
+    console.error('Error inicializando Firebase Admin:', error);
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
+    // Verificar que Firebase Admin esté inicializado
+    if (!messaging || !db) {
+      return NextResponse.json(
+        { error: 'Firebase Admin no está configurado' },
+        { status: 500 }
+      );
+    }
+
     const { userId, type, title, body, data } = await request.json();
 
     console.log('📤 API: Enviando notificación:', { userId, type, title, body });
