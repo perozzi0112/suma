@@ -5,6 +5,7 @@ import React, { createContext, useContext, useState, ReactNode, useCallback, use
 import type { Appointment, DoctorNotification, AdminSupportTicket, DoctorPayment } from './types';
 import { useAuth } from './auth';
 import { batchUpdateDoctorAppointmentsAsRead, batchUpdateDoctorNotificationsAsRead } from './firestoreService';
+import { getCurrentDateTimeInVenezuela } from './utils';
 
 interface DoctorNotificationContextType {
   doctorNotifications: DoctorNotification[];
@@ -71,7 +72,7 @@ export function DoctorNotificationProvider({ children }: { children: ReactNode }
 
     const storageKey = getNotificationStorageKey(user.id);
     const newNotificationsMap = new Map<string, DoctorNotification>();
-    const now = new Date();
+    const now = getCurrentDateTimeInVenezuela();
     
     const existingIds = new Set(doctorNotifications.map(n => n.id));
 

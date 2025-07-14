@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
+import { useSellerNotifications } from '@/lib/seller-notifications';
 import { HeaderWrapper } from '@/components/header';
 import * as firestoreService from '@/lib/firestoreService';
 import type { Doctor, SellerPayment, MarketingMaterial, AdminSupportTicket, Seller } from '@/lib/types';
@@ -40,6 +41,7 @@ function DashboardLoading() {
 
 export function SellerDashboardClient({ currentTab }: { currentTab: string }) {
   const { user, loading } = useAuth();
+  const { checkAndSetSellerNotifications } = useSellerNotifications();
   const router = useRouter();
 
   const { toast } = useToast();
@@ -71,9 +73,16 @@ export function SellerDashboardClient({ currentTab }: { currentTab: string }) {
         
         if (seller) {
             setSellerData(seller);
-            setReferredDoctors(allDocs.filter(d => d.sellerId === seller.id));
-            setSellerPayments(allPayments.filter(p => p.sellerId === seller.id));
-            setSupportTickets(allTickets.filter(t => t.userId === user.email));
+            const filteredDocs = allDocs.filter(d => d.sellerId === seller.id);
+            const filteredPayments = allPayments.filter(p => p.sellerId === seller.id);
+            const filteredTickets = allTickets.filter(t => t.userId === user.email);
+            
+            setReferredDoctors(filteredDocs);
+            setSellerPayments(filteredPayments);
+            setSupportTickets(filteredTickets);
+            
+            // Actualizar notificaciones
+            checkAndSetSellerNotifications(filteredDocs, filteredTickets, filteredPayments);
         }
     } catch (error) {
         console.error("Error fetching seller data:", error);
@@ -81,7 +90,7 @@ export function SellerDashboardClient({ currentTab }: { currentTab: string }) {
     } finally {
         setIsLoading(false);
     }
-  }, [user, toast]);
+  }, [user, toast, checkAndSetSellerNotifications]);
 
   useEffect(() => {
     if (user?.id) {

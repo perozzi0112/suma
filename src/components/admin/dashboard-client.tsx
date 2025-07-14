@@ -3,6 +3,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
+import { useAdminNotifications } from '@/lib/admin-notifications';
 import { Loader2 } from 'lucide-react';
 import { OverviewTab } from './tabs/overview-tab';
 import { DoctorsTab } from './tabs/doctors-tab';
@@ -16,6 +17,7 @@ import { Skeleton } from '../ui/skeleton';
 
 export function AdminDashboardClient({ currentTab = 'overview' }: { currentTab?: string }) {
   const { user, loading } = useAuth();
+  const { checkAndSetAdminNotifications } = useAdminNotifications();
   const router = useRouter();
 
   // Verificar si el usuario es administrador
@@ -24,6 +26,14 @@ export function AdminDashboardClient({ currentTab = 'overview' }: { currentTab?:
       router.push('/auth/login');
     }
   }, [user, loading, router]);
+
+  // Actualizar notificaciones cuando el usuario cambie
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      // Las notificaciones del administrador se actualizan automáticamente cada 30 segundos
+      // desde el AdminNotificationProvider
+    }
+  }, [user]);
 
   if (loading) {
     return (

@@ -18,6 +18,7 @@ import { Eye, Pencil, Trash2, CheckCircle, XCircle, UserPlus, Loader2 } from 'lu
 import { z } from 'zod';
 import { cn } from "@/lib/utils";
 import { useSettings } from "@/lib/settings";
+import { getCurrentDateInVenezuela, getPaymentDateInVenezuela } from '@/lib/utils';
 
 
 const DoctorFormSchema = z.object({
@@ -173,13 +174,13 @@ export function DoctorsTab() {
                 sunday: { active: false, slots: [] },
             },
             status: 'active',
-            lastPaymentDate: new Date().toISOString().split('T')[0],
+            lastPaymentDate: getCurrentDateInVenezuela(),
             whatsapp: '',
             lat: 0,
             lng: 0,
-            joinDate: new Date().toISOString().split('T')[0],
+            joinDate: getCurrentDateInVenezuela(),
             subscriptionStatus: 'active',
-            nextPaymentDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0],
+            nextPaymentDate: getPaymentDateInVenezuela(new Date()),
             coupons: [],
             expenses: []
         };

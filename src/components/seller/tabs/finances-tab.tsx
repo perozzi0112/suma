@@ -2,7 +2,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from 'react';
-import type { Seller, Doctor, SellerPayment, Expense } from '@/lib/types';
+import type { Seller, Doctor, SellerPayment, Expense, DoctorPayment } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -21,6 +21,7 @@ import * as firestoreService from '@/lib/firestoreService';
 import { z } from 'zod';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from '@/lib/utils';
+import { getCurrentDateTimeInVenezuela } from '@/lib/utils';
 
 const timeRangeLabels: Record<string, string> = {
     today: 'Hoy', week: 'Esta Semana', month: 'Este Mes', year: 'Este Año', all: 'Todos'
@@ -53,6 +54,7 @@ export function FinancesTab({ sellerData, sellerPayments, onUpdate }: FinancesTa
   const [expenseItemsPerPage, setExpenseItemsPerPage] = useState(10);
   
   const [referredDoctors, setReferredDoctors] = useState<Doctor[]>([]);
+  const [doctorPayments, setDoctorPayments] = useState<DoctorPayment[]>([]);
   const [isLoadingDoctors, setIsLoadingDoctors] = useState(true);
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -64,31 +66,50 @@ export function FinancesTab({ sellerData, sellerPayments, onUpdate }: FinancesTa
     const fetchReferredDoctors = async () => {
       if (!sellerData.id) return;
       setIsLoadingDoctors(true);
-      const allDocs = await firestoreService.getDoctors();
-      setReferredDoctors(allDocs.filter(d => d.sellerId === sellerData.id));
-      setIsLoadingDoctors(false);
+      try {
+        const [allDocs, allPayments] = await Promise.all([
+          firestoreService.getDoctors(),
+          firestoreService.getDoctorPayments()
+        ]);
+        setReferredDoctors(allDocs.filter(d => d.sellerId === sellerData.id));
+        setDoctorPayments(allPayments);
+      } catch (error) {
+        console.error('Error loading data:', error);
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron cargar los datos.' });
+      } finally {
+        setIsLoadingDoctors(false);
+      }
     }
     fetchReferredDoctors();
-  }, [sellerData.id]);
+  }, [sellerData.id, toast]);
 
 
   const cityFeesMap = useMemo(() => new Map(cities.map(c => [c.name, c.subscriptionFee])), [cities]);
 
   const financeStats = useMemo(() => {
-    const now = new Date();
+    const now = getCurrentDateTimeInVenezuela();
     const currentPeriod = format(now, "LLLL yyyy", { locale: es });
     
     const hasBeenPaidThisPeriod = sellerPayments.some(p => p.period.toLowerCase() === currentPeriod.toLowerCase());
     const activeReferred = referredDoctors.filter(d => d.status === 'active');
     
+    // Filtrar solo doctores que han pagado efectivamente
+    const doctorsWithPayments = activeReferred.filter(doc => {
+      const hasPaidPayments = doctorPayments.some(payment => 
+        payment.doctorId === doc.id && 
+        payment.status === 'Paid'
+      );
+      return hasPaidPayments;
+    });
+    
     let pendingCommission = 0;
     if (!hasBeenPaidThisPeriod) {
-        pendingCommission = activeReferred.reduce((sum, doc) => {
+        pendingCommission = doctorsWithPayments.reduce((sum, doc) => {
             const fee = cityFeesMap.get(doc.city) || 0;
             return sum + (fee * sellerData.commissionRate);
         }, 0);
     }
-    const doctorsForPendingCommission = hasBeenPaidThisPeriod ? [] : activeReferred;
+    const doctorsForPendingCommission = hasBeenPaidThisPeriod ? [] : doctorsWithPayments;
     
     let startDate: Date, endDate: Date;
     let filteredPayments = sellerPayments;
@@ -127,7 +148,7 @@ export function FinancesTab({ sellerData, sellerPayments, onUpdate }: FinancesTa
         filteredPayments, filteredExpenses, doctorsForPendingCommission, hasBeenPaidThisPeriod,
         activeReferredCount: activeReferred.length
     };
-  }, [referredDoctors, sellerPayments, sellerData, cityFeesMap, timeRange]);
+  }, [referredDoctors, sellerPayments, sellerData, cityFeesMap, timeRange, doctorPayments]);
   
   const paginatedSellerExpenses = useMemo(() => {
     if (expenseItemsPerPage === -1) return financeStats.filteredExpenses;
@@ -215,7 +236,7 @@ export function FinancesTab({ sellerData, sellerPayments, onUpdate }: FinancesTa
             </div>
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Comisión Pendiente</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">${financeStats.pendingCommission.toFixed(2)}</div><p className="text-xs text-muted-foreground">{financeStats.activeReferredCount} médicos activos</p></CardContent></Card>
+            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Comisión Pendiente</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">${financeStats.pendingCommission.toFixed(2)}</div><p className="text-xs text-muted-foreground">{financeStats.doctorsForPendingCommission.length} médicos con pagos confirmados</p></CardContent></Card>
             <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Ingresos Recibidos</CardTitle><TrendingUp className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-green-600">${financeStats.totalEarned.toFixed(2)}</div><p className="text-xs text-muted-foreground">Pagos de SUMA ({timeRangeLabels[timeRange]})</p></CardContent></Card>
             <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Gastos</CardTitle><TrendingDown className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold text-red-600">${financeStats.totalExpenses.toFixed(2)}</div><p className="text-xs text-muted-foreground">Gastos ({timeRangeLabels[timeRange]})</p></CardContent></Card>
             <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Beneficio Neto</CardTitle><Wallet className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className={`text-2xl font-bold ${financeStats.netProfit >= 0 ? 'text-primary' : 'text-destructive'}`}>${financeStats.netProfit.toFixed(2)}</div><p className="text-xs text-muted-foreground">Ingresos - Gastos ({timeRangeLabels[timeRange]})</p></CardContent></Card>

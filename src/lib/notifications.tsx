@@ -7,6 +7,7 @@ import { differenceInHours, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useAuth } from './auth';
 import { batchUpdatePatientAppointmentsAsRead } from './firestoreService';
+import { getCurrentDateTimeInVenezuela } from './utils';
 
 interface NotificationContextType {
   notifications: PatientNotification[];
@@ -67,7 +68,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     const storageKey = getNotificationStorageKey(user.id);
     const newNotificationsMap = new Map<string, PatientNotification>();
-    const now = new Date();
+    const now = getCurrentDateTimeInVenezuela();
     
     const existingIds = new Set(notifications.map(n => n.id));
 

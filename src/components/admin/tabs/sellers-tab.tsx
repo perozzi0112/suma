@@ -1,7 +1,7 @@
 
 "use client";
 import { useState, useCallback, useEffect, useMemo } from "react";
-import type { Seller, Doctor, SellerPayment, IncludedDoctorCommission } from "@/lib/types";
+import type { Seller, Doctor, SellerPayment, IncludedDoctorCommission, DoctorPayment } from "@/lib/types";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -38,6 +38,7 @@ export function SellersTab() {
   const [activeTab, setActiveTab] = useState("pendientes");
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [doctorPayments, setDoctorPayments] = useState<DoctorPayment[]>([]);
   const [sellerPayments, setSellerPayments] = useState<SellerPayment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSellerDialogOpen, setIsSellerDialogOpen] = useState(false);
@@ -82,14 +83,16 @@ export function SellersTab() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [sells, docs, payments] = await Promise.all([
+      const [sells, docs, docPayments, sellerPaymentsData] = await Promise.all([
         firestoreService.getSellers(),
         firestoreService.getDoctors(),
+        firestoreService.getDoctorPayments(),
         firestoreService.getSellerPayments(),
       ]);
       setSellers(sells);
       setDoctors(docs);
-      setSellerPayments(payments);
+      setDoctorPayments(docPayments);
+      setSellerPayments(sellerPaymentsData);
     } catch (error) {
       toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron cargar los datos de las vendedoras.' });
     } finally {
@@ -114,13 +117,24 @@ export function SellersTab() {
     
     if (hasBeenPaidThisPeriod) return 0;
     
-    // Calcular comisión de médicos activos
-    const activeReferred = doctors.filter(d => d.sellerId === seller.id && d.status === 'active');
-    return activeReferred.reduce((sum, doc) => {
+    // Calcular comisión solo de médicos que han realizado pagos efectivos
+    const referredDoctors = doctors.filter(d => d.sellerId === seller.id && d.status === 'active');
+    
+    // Filtrar solo doctores que han pagado (tienen pagos aprobados)
+    const doctorsWithPayments = referredDoctors.filter(doc => {
+      // Buscar si el doctor tiene pagos aprobados
+      const hasPaidPayments = doctorPayments.some(payment => 
+        payment.doctorId === doc.id && 
+        payment.status === 'Paid'
+      );
+      return hasPaidPayments;
+    });
+    
+    return doctorsWithPayments.reduce((sum, doc) => {
       const fee = cityFeesMap.get(doc.city) || 0;
       return sum + (fee * seller.commissionRate);
     }, 0);
-  }, [doctors, sellerPayments, cityFeesMap]);
+  }, [doctors, sellerPayments, cityFeesMap, doctorPayments]);
 
   const openDeleteDialog = (seller: Seller) => {
     setItemToDelete(seller);
@@ -150,8 +164,17 @@ export function SellersTab() {
       return;
     }
 
-    const activeReferred = doctors.filter(d => d.sellerId === seller.id && d.status === 'active');
-    const includedDoctors: IncludedDoctorCommission[] = activeReferred.map(doc => {
+    // Obtener solo doctores que han pagado efectivamente
+    const referredDoctors = doctors.filter(d => d.sellerId === seller.id && d.status === 'active');
+    const doctorsWithPayments = referredDoctors.filter(doc => {
+      const hasPaidPayments = doctorPayments.some(payment => 
+        payment.doctorId === doc.id && 
+        payment.status === 'Paid'
+      );
+      return hasPaidPayments;
+    });
+
+    const includedDoctors: IncludedDoctorCommission[] = doctorsWithPayments.map(doc => {
       const fee = cityFeesMap.get(doc.city) || 0;
       return {
         id: doc.id,

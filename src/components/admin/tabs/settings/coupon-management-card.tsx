@@ -18,6 +18,7 @@ import { PlusCircle, Pencil, Trash2, Loader2, CreditCard, Percent, DollarSign, U
 import { useToast } from "@/hooks/use-toast";
 import { cn } from '@/lib/utils';
 import { getDoctors, getSettings } from '@/lib/firestoreService';
+import { getCurrentDateTimeInVenezuela } from '@/lib/utils';
 
 interface CouponManagementCardProps {
     coupons: Coupon[];
@@ -162,11 +163,11 @@ export function CouponManagementCard({ coupons, onAddCoupon, onUpdateCoupon, onD
                 description: `Cupón ${data.code.trim().toUpperCase()}`,
                 discountType: data.discountType,
                 discountValue: data.discountValue,
-                validFrom: new Date(),
-                validTo: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 días
+                validFrom: getCurrentDateTimeInVenezuela().toISOString().split('T')[0],
+                validTo: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 días
                 isActive: true,
-                createdAt: new Date(),
-                updatedAt: new Date(),
+                createdAt: getCurrentDateTimeInVenezuela().toISOString(),
+                updatedAt: getCurrentDateTimeInVenezuela().toISOString(),
                 scopeType: scopeType,
             };
 
@@ -361,7 +362,7 @@ export function CouponManagementCard({ coupons, onAddCoupon, onUpdateCoupon, onD
                     {/* Tabla responsiva para desktop */}
                     <div className="hidden md:block rounded-md border">
                         <div className="overflow-x-auto">
-                            <Table>
+                    <Table>
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Código</TableHead>
@@ -371,7 +372,7 @@ export function CouponManagementCard({ coupons, onAddCoupon, onUpdateCoupon, onD
                                         <TableHead className="w-24 text-center">Acciones</TableHead>
                                     </TableRow>
                                 </TableHeader>
-                                <TableBody>
+                        <TableBody>
                                     {coupons.map(coupon => (
                                         <TableRow key={coupon.id} className="hover:bg-muted/50">
                                             <TableCell className="font-mono font-bold">{coupon.code}</TableCell>
@@ -409,11 +410,11 @@ export function CouponManagementCard({ coupons, onAddCoupon, onUpdateCoupon, onD
                                                         <Trash2 className="h-3 w-3"/>
                                                     </Button>
                                                 </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
                         </div>
                         
                         {coupons.length === 0 && (

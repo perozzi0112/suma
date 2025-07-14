@@ -6,6 +6,7 @@ import { AppointmentProvider } from "@/lib/appointments";
 import { NotificationProvider } from "@/lib/notifications";
 import { DoctorNotificationProvider } from "@/lib/doctor-notifications";
 import { SellerNotificationProvider } from "@/lib/seller-notifications";
+import { AdminNotificationProvider } from "@/lib/admin-notifications";
 import { ChatNotificationProvider } from "@/lib/chat-notifications";
 import { SettingsProvider } from "@/lib/settings";
 import "./globals.css";
@@ -80,12 +81,14 @@ export default function RootLayout({
             <NotificationProvider>
               <DoctorNotificationProvider>
                 <SellerNotificationProvider>
-                  <ChatNotificationProvider>
-                    <SettingsProvider>
-                      {children}
-                      <Toaster />
-                    </SettingsProvider>
-                  </ChatNotificationProvider>
+                  <AdminNotificationProvider>
+                    <ChatNotificationProvider>
+                      <SettingsProvider>
+                        {children}
+                        <Toaster />
+                      </SettingsProvider>
+                    </ChatNotificationProvider>
+                  </AdminNotificationProvider>
                 </SellerNotificationProvider>
               </DoctorNotificationProvider>
             </NotificationProvider>

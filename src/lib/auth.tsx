@@ -8,6 +8,7 @@ import type { Patient, Doctor, Seller } from './types';
 import { useToast } from '@/hooks/use-toast';
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from './firebase';
+import { getCurrentDateInVenezuela, getPaymentDateInVenezuela } from './utils';
 
 // The User type represents the logged-in user and must have all Patient properties for consistency across the app.
 interface User extends Patient {
@@ -247,28 +248,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     
     const joinDate = new Date();
-    const paymentDate = new Date(joinDate.getFullYear(), joinDate.getMonth(), 1);
-    if (joinDate.getDate() < 15) {
-      paymentDate.setMonth(paymentDate.getMonth() + 1);
-    } else {
-      paymentDate.setMonth(paymentDate.getMonth() + 2);
-    }
+    const joinDateVenezuela = getCurrentDateInVenezuela();
+    const paymentDateVenezuela = getPaymentDateInVenezuela(joinDate);
 
     const newDoctorData: Omit<Doctor, 'id'> = {
         name, email, specialty, city, address, password,
-        sellerId: null, // As requested, referred by admin/system
-        cedula: '',
-        sector: '',
-        rating: 0,
-        reviewCount: 0,
+        sellerId: null, cedula: '', sector: '', rating: 0, reviewCount: 0,
         profileImage: 'https://placehold.co/400x400.png',
         bannerImage: 'https://placehold.co/1200x400.png',
-        aiHint: 'doctor portrait',
-        description: 'Especialista comprometido con la salud y el bienestar de mis pacientes.',
-        services: [],
-        bankDetails: [],
-        slotDuration: slotDuration,
-        consultationFee: consultationFee,
+        aiHint: 'doctor portrait', description: 'Especialista comprometido con la salud y el bienestar de mis pacientes.', services: [], bankDetails: [],
+        slotDuration: slotDuration, consultationFee,
         schedule: {
             monday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
             tuesday: { active: true, slots: [{ start: "09:00", end: "17:00" }] },
@@ -278,15 +267,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             saturday: { active: false, slots: [] },
             sunday: { active: false, slots: [] },
         },
-        status: 'active',
-        lastPaymentDate: joinDate.toISOString().split('T')[0],
-        whatsapp: '',
-        lat: 0, lng: 0,
-        joinDate: joinDate.toISOString().split('T')[0],
-        subscriptionStatus: 'active',
-        nextPaymentDate: paymentDate.toISOString().split('T')[0],
-        coupons: [],
-        expenses: [],
+        status: 'active', lastPaymentDate: joinDateVenezuela,
+        whatsapp: '', lat: 0, lng: 0,
+        joinDate: joinDateVenezuela,
+        subscriptionStatus: 'active', nextPaymentDate: paymentDateVenezuela,
+        coupons: [], expenses: [],
     };
     
     const newDoctorId = await firestoreService.addDoctor(newDoctorData);

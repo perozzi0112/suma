@@ -6,6 +6,7 @@ import type { SellerNotification, AdminSupportTicket, SellerPayment, Doctor } fr
 import { useAuth } from './auth';
 import { doc, writeBatch } from 'firebase/firestore';
 import { db } from './firebase';
+import { getCurrentDateTimeInVenezuela } from './utils';
 
 interface SellerNotificationContextType {
   sellerNotifications: SellerNotification[];
@@ -56,20 +57,20 @@ export function SellerNotificationProvider({ children }: { children: ReactNode }
   }, [user]);
 
   const checkAndSetSellerNotifications = useCallback((
-      sellerPayments: SellerPayment[],
-      supportTickets: AdminSupportTicket[],
-      referredDoctors: Doctor[]
+    doctors: Doctor[], 
+    supportTickets: AdminSupportTicket[],
+    sellerPayments: SellerPayment[]
   ) => {
     if (!user?.id || user.role !== 'seller') return;
 
     const storageKey = getNotificationStorageKey(user.id);
     const newNotificationsMap = new Map<string, SellerNotification>();
-    const now = new Date();
+    const now = getCurrentDateTimeInVenezuela();
     
     const existingIds = new Set(sellerNotifications.map(n => n.id));
 
     // 1. New Doctor Registered - Solo doctores referidos por este vendedor
-    const sellerReferredDoctors = referredDoctors.filter(doc => doc.sellerId === user.id);
+    const sellerReferredDoctors = doctors.filter(doc => doc.sellerId === user.id);
     sellerReferredDoctors.forEach(doc => {
         if (!doc.readBySeller) {
             const id = `new-doctor-${doc.id}`;
@@ -187,7 +188,7 @@ export function SellerNotificationProvider({ children }: { children: ReactNode }
           getSupportTickets(),
           getDoctors()
         ]);
-        checkAndSetSellerNotifications(sellerPayments, supportTickets, referredDoctors);
+        checkAndSetSellerNotifications(referredDoctors, supportTickets, sellerPayments);
       }
     }
     if (user?.id && user.role === 'seller') {

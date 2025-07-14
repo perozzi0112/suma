@@ -195,7 +195,7 @@ export function BankManagementCard({ bankDetails, onAddBankDetail, onUpdateBankD
                     {/* Tabla responsiva para desktop */}
                     <div className="hidden md:block rounded-md border">
                         <div className="overflow-x-auto">
-                            <Table>
+                    <Table>
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Banco</TableHead>
@@ -206,7 +206,7 @@ export function BankManagementCard({ bankDetails, onAddBankDetail, onUpdateBankD
                                         <TableHead className="w-24 text-center">Acciones</TableHead>
                                     </TableRow>
                                 </TableHeader>
-                                <TableBody>
+                        <TableBody>
                                     {bankDetails.map(bank => (
                                         <TableRow key={bank.id} className="hover:bg-muted/50">
                                             <TableCell className="font-bold">{bank.bank}</TableCell>
@@ -237,11 +237,11 @@ export function BankManagementCard({ bankDetails, onAddBankDetail, onUpdateBankD
                                                         <Trash2 className="h-3 w-3"/>
                                                     </Button>
                                                 </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
                         </div>
                         
                         {bankDetails.length === 0 && (

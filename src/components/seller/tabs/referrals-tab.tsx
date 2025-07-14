@@ -20,6 +20,7 @@ import { PlusCircle, Search, Link as LinkIcon, Copy, Mail, Phone, DollarSign, Ch
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { getCurrentDateInVenezuela, getPaymentDateInVenezuela } from '@/lib/utils';
 
 const passwordSchema = z.string()
     .min(8, "La contraseña debe tener al menos 8 caracteres.")
@@ -73,7 +74,7 @@ export function ReferralsTab({ referredDoctors, referralCode, onUpdate }: Referr
   const [isDoctorPaymentsDialogOpen, setIsDoctorPaymentsDialogOpen] = useState(false);
   const [selectedDoctorForPayments, setSelectedDoctorForPayments] = useState<Doctor | null>(null);
 
-  const referralLink = `${typeof window !== 'undefined' ? window.location.origin : ''}/auth/register?ref=${referralCode}`;
+  const referralLink = `${typeof window !== 'undefined' ? window.location.origin : ''}/auth/register-doctor?ref=${referralCode}`;
 
   useEffect(() => {
     const fetchPayments = async () => {
@@ -148,12 +149,8 @@ export function ReferralsTab({ referredDoctors, referralCode, onUpdate }: Referr
     const { name, email, specialty, city, address, password, slotDuration, consultationFee } = result.data;
     
     const joinDate = new Date();
-    const paymentDate = new Date(joinDate.getFullYear(), joinDate.getMonth(), 1);
-    if (joinDate.getDate() < 15) {
-        paymentDate.setMonth(paymentDate.getMonth() + 1);
-    } else {
-        paymentDate.setMonth(paymentDate.getMonth() + 2);
-    }
+    const joinDateVenezuela = getCurrentDateInVenezuela();
+    const paymentDateVenezuela = getPaymentDateInVenezuela(joinDate);
 
     const newDoctorData: Omit<Doctor, 'id'> = {
         name, email, specialty, city, address,
@@ -173,10 +170,10 @@ export function ReferralsTab({ referredDoctors, referralCode, onUpdate }: Referr
             saturday: { active: false, slots: [] },
             sunday: { active: false, slots: [] },
         },
-        status: 'active', lastPaymentDate: joinDate.toISOString().split('T')[0],
+        status: 'active', lastPaymentDate: joinDateVenezuela,
         whatsapp: '', lat: 0, lng: 0,
-        joinDate: joinDate.toISOString().split('T')[0],
-        subscriptionStatus: 'active', nextPaymentDate: paymentDate.toISOString().split('T')[0],
+        joinDate: joinDateVenezuela,
+        subscriptionStatus: 'active', nextPaymentDate: paymentDateVenezuela,
         coupons: [], expenses: [],
     };
     

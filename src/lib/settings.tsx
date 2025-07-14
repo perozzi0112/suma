@@ -5,6 +5,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect, useCa
 import * as firestoreService from './firestoreService';
 import type { AppSettings, Coupon, CompanyExpense, BankDetail, City } from './types';
 import { useToast } from '@/hooks/use-toast';
+import { getCurrentDateTimeInVenezuela } from './utils';
 
 interface SettingsContextType {
   settings: AppSettings | null;
@@ -90,11 +91,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
                         description: 'Cupón de bienvenida',
                         discountType: 'percentage' as const,
                         discountValue: 20,
-                        validFrom: new Date(),
-                        validTo: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 año
+                        validFrom: getCurrentDateTimeInVenezuela().toISOString().split('T')[0],
+                        validTo: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 1 año
                         isActive: true,
-                        createdAt: new Date(),
-                        updatedAt: new Date(),
+                        createdAt: getCurrentDateTimeInVenezuela().toISOString(),
+                        updatedAt: getCurrentDateTimeInVenezuela().toISOString(),
                         scopeType: 'all' as const
                     }
                 ],
