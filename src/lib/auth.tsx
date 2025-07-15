@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from './firebase';
 import { getCurrentDateInVenezuela, getPaymentDateInVenezuela } from './utils';
+import { hashPassword, verifyPassword, isPasswordHashed } from './password-utils';
 
 // The User type represents the logged-in user and must have all Patient properties for consistency across the app.
 interface User extends Patient {
@@ -193,7 +194,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    if (!userToAuth.password || userToAuth.password !== password) {
+    if (!userToAuth.password) {
+      toast({ variant: 'destructive', title: 'Error de Autenticación', description: 'La contraseña es incorrecta.' });
+      return;
+    }
+
+    // Verificar contraseña (soporta tanto texto plano como encriptada para migración)
+    let passwordValid = false;
+    if (isPasswordHashed(userToAuth.password)) {
+      // Contraseña encriptada
+      passwordValid = await verifyPassword(password, userToAuth.password);
+    } else {
+      // Contraseña en texto plano (legacy)
+      passwordValid = userToAuth.password === password;
+    }
+
+    if (!passwordValid) {
       toast({ variant: 'destructive', title: 'Error de Autenticación', description: 'La contraseña es incorrecta.' });
       return;
     }
@@ -217,10 +233,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // Encriptar contraseña
+    const hashedPassword = await hashPassword(password);
+
     const newPatientData: Omit<Patient, 'id'> = { 
       name, 
       email, 
-      password, 
+      password: hashedPassword, 
       age: null, 
       gender: null, 
       profileImage: null, 
@@ -247,12 +266,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
     }
     
+    // Encriptar contraseña
+    const hashedPassword = await hashPassword(password);
+    
     const joinDate = new Date();
     const joinDateVenezuela = getCurrentDateInVenezuela();
     const paymentDateVenezuela = getPaymentDateInVenezuela(joinDate);
 
     const newDoctorData: Omit<Doctor, 'id'> = {
-        name, email, specialty, city, address, password,
+        name, email, specialty, city, address, password: hashedPassword,
         sellerId: null, cedula: '', sector: '', rating: 0, reviewCount: 0,
         profileImage: 'https://placehold.co/400x400.png',
         bannerImage: 'https://placehold.co/1200x400.png',
@@ -319,23 +341,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: false, message: 'Usuario no autorizado.' };
     }
     
-    if (user.password !== currentPassword) {
+    // Verificar contraseña actual (soporta tanto texto plano como encriptada)
+    let currentPasswordValid = false;
+    if (isPasswordHashed(user.password)) {
+      currentPasswordValid = await verifyPassword(currentPassword, user.password);
+    } else {
+      currentPasswordValid = user.password === currentPassword;
+    }
+    
+    if (!currentPasswordValid) {
       return { success: false, message: 'La contraseña actual es incorrecta.' };
     }
 
     try {
+      // Encriptar nueva contraseña
+      const hashedNewPassword = await hashPassword(newPassword);
+      
       let updatePromise;
       if (user.role === 'patient') {
-        updatePromise = firestoreService.updatePatient(user.id, { password: newPassword });
+        updatePromise = firestoreService.updatePatient(user.id, { password: hashedNewPassword });
       } else if (user.role === 'doctor') {
-        updatePromise = firestoreService.updateDoctor(user.id, { password: newPassword });
+        updatePromise = firestoreService.updateDoctor(user.id, { password: hashedNewPassword });
       } else {
         return { success: false, message: 'Rol de usuario no soportado para cambio de contraseña.' };
       }
       
       await updatePromise;
       
-      const updatedUser = { ...user, password: newPassword };
+      const updatedUser = { ...user, password: hashedNewPassword };
       setUser(updatedUser as User);
       localStorage.setItem('user', JSON.stringify(updatedUser));
       

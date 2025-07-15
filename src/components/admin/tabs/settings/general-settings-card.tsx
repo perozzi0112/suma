@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { } from "@/components/ui/textarea";
-import { Save, Upload, X, HelpCircle, CheckCircle, AlertCircle, Image as ImageIcon, Loader2, Settings, MapPin, CreditCard, Stethoscope, Shield, AlertTriangle, Calendar } from 'lucide-react';
+import { Save, Upload, X, HelpCircle, CheckCircle, AlertCircle, Image as ImageIcon, Loader2, Settings, MapPin, CreditCard, Stethoscope, Shield, AlertTriangle, Calendar, Lock } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import type { AppSettings } from '@/lib/types';
 import * as firestoreService from '@/lib/firestoreService';
@@ -737,6 +737,72 @@ export function GeneralSettingsCard({
                 <li>• Si no pagan, se marcan automáticamente como inactivos</li>
                 <li>• Los médicos inactivos no aparecen en la búsqueda de pacientes</li>
                 <li>• Al aprobar un pago, el médico vuelve a estar activo por un mes</li>
+              </ul>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Migración de Contraseñas - Nueva sección */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Lock className="h-5 w-5 text-purple-600" />
+              <h3 className="text-lg font-semibold">Seguridad de Contraseñas</h3>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Card className="border-purple-200 bg-purple-50/30">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-purple-800 text-sm">
+                    <Lock className="h-4 w-4" />
+                    Migración de Contraseñas
+                  </CardTitle>
+                  <CardDescription className="text-purple-700 text-xs">
+                    Encripta contraseñas existentes en texto plano
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button 
+                    onClick={() => window.open('/admin/password-migration', '_blank')}
+                    size="sm"
+                    className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto"
+                  >
+                    <Lock className="mr-2 h-3 w-3" />
+                    Ir a Migración
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="border-green-200 bg-green-50/30">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-green-800 text-sm">
+                    <Shield className="h-4 w-4" />
+                    Estado de Seguridad
+                  </CardTitle>
+                  <CardDescription className="text-green-700 text-xs">
+                    Verifica el estado de encriptación
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button 
+                    onClick={() => window.open('/admin/password-migration', '_blank')}
+                    size="sm"
+                    className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
+                  >
+                    <Shield className="mr-2 h-3 w-3" />
+                    Verificar Estado
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="text-xs text-muted-foreground bg-muted p-3 rounded-lg">
+              <p className="font-medium mb-1">🔒 Información sobre seguridad de contraseñas:</p>
+              <ul className="space-y-1">
+                <li>• Las contraseñas se encriptan usando bcrypt con factor de costo 10</li>
+                <li>• Cada contraseña tiene un salt único para mayor seguridad</li>
+                <li>• La migración es irreversible pero segura</li>
+                <li>• Se recomienda ejecutar la migración una sola vez</li>
               </ul>
             </div>
           </div>

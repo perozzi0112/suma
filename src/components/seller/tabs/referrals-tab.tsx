@@ -16,6 +16,7 @@ import * as firestoreService from '@/lib/firestoreService';
 import { useAuth } from '@/lib/auth';
 import { useSettings } from '@/lib/settings';
 import { z } from 'zod';
+import { hashPassword } from '@/lib/password-utils';
 import { PlusCircle, Search, Link as LinkIcon, Copy, Mail, Phone, DollarSign, CheckCircle, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -145,13 +146,16 @@ export function ReferralsTab({ referredDoctors, referralCode, onUpdate }: Referr
 
     const { name, email, specialty, city, address, password, slotDuration, consultationFee } = result.data;
     
+    // Encriptar contraseña
+    const hashedPassword = await hashPassword(password);
+    
     const joinDate = new Date();
     const joinDateVenezuela = getCurrentDateInVenezuela();
     const paymentDateVenezuela = getPaymentDateInVenezuela(joinDate);
 
     const newDoctorData: Omit<Doctor, 'id'> = {
         name, email, specialty, city, address,
-        password: password,
+        password: hashedPassword,
         sellerId: user.id,
         cedula: '', sector: '', rating: 0, reviewCount: 0,
         profileImage: 'https://placehold.co/400x400.png',

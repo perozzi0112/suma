@@ -1,181 +1,166 @@
-# 🔒 Notas de Seguridad - Sistema MedAgenda
+# Notas de Seguridad - Encriptado de Contraseñas
 
-## ⚠️ Problemas de Seguridad Identificados
+## 🔒 Implementación de Seguridad
 
-### 1. **Sesiones en localStorage**
-- **Problema**: Las sesiones se mantienen en `localStorage` del navegador
-- **Riesgo**: Las sesiones persisten incluso después de cerrar el navegador
-- **Impacto**: Usuarios pueden acceder sin volver a autenticarse desde navegador incógnito
+### Resumen
+Se ha implementado un sistema completo de encriptado de contraseñas usando bcrypt para mejorar la seguridad de la aplicación SUMA.
 
-### 2. **Contraseñas en Texto Plano**
-- **Problema**: Las contraseñas se almacenan sin encriptar en Firestore
-- **Riesgo**: Exposición de credenciales si se compromete la base de datos
-- **Impacto**: Alto - credenciales visibles para administradores de Firebase
+### Cambios Implementados
 
-### 3. **Autenticación Simple**
-- **Problema**: No hay tokens JWT ni expiración de sesiones
-- **Riesgo**: Sesiones indefinidas sin verificación de integridad
-- **Impacto**: Medio - sesiones pueden ser manipuladas
+#### 1. Utilidades de Contraseñas (`src/lib/password-utils.ts`)
+- **hashPassword()**: Encripta contraseñas usando bcrypt con factor de costo 10
+- **verifyPassword()**: Verifica contraseñas contra hashes encriptados
+- **isPasswordHashed()**: Detecta si una contraseña ya está encriptada
 
-## 🔐 Credenciales de Administrador
+#### 2. Autenticación Actualizada (`src/lib/auth.tsx`)
+- **Login**: Soporta tanto contraseñas encriptadas como texto plano (migración gradual)
+- **Registro**: Encripta automáticamente todas las nuevas contraseñas
+- **Cambio de contraseña**: Encripta las nuevas contraseñas
+- **Compatibilidad**: Mantiene compatibilidad con contraseñas existentes
 
-### Cuenta Principal
-- **Email**: `Perozzi0112@gmail.com`
-- **Contraseña**: `..Suma..01`
-- **ID**: `admin-suma-2024`
+#### 3. Componentes Actualizados
+- **Registro de doctores** (`src/components/seller/tabs/referrals-tab.tsx`): Encripta contraseñas
+- **Gestión de pacientes** (`src/components/admin/tabs/patients-tab.tsx`): Encripta contraseñas y oculta en vista
+- **Configuración general**: Agrega enlaces a migración de contraseñas
 
-### Cuenta Anterior (Deprecada)
-- **Email**: `admin@admin.com`
-- **Contraseña**: `1234`
-- **Estado**: Deshabilitada
+#### 4. Script de Migración (`src/lib/migrate-passwords.ts`)
+- **migratePasswords()**: Encripta todas las contraseñas existentes
+- **checkPasswordEncryptionStatus()**: Verifica el estado de encriptación
+- **Manejo de errores**: Logs detallados y manejo de excepciones
 
-## 🛡️ Mejoras Implementadas
+#### 5. Página de Administración (`src/app/admin/password-migration/page.tsx`)
+- **Interfaz visual**: Para ejecutar migración de forma segura
+- **Estadísticas**: Muestra estado actual de encriptación
+- **Controles de seguridad**: Advertencias y confirmaciones
 
-### 1. **Logout Mejorado**
-```javascript
-const logout = () => {
-  setUser(null);
-  localStorage.removeItem('user');
-  sessionStorage.removeItem('user');
-  // Limpiar cookies
-  document.cookie.split(";").forEach(function(c) { 
-    document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
-  });
-  router.push('/');
-};
-```
+### Especificaciones Técnicas
 
-### 2. **Nueva Cuenta Administradora**
-- Credenciales más seguras
-- ID único en la base de datos
-- Permisos explícitos definidos
+#### Algoritmo de Encriptación
+- **Algoritmo**: bcrypt
+- **Factor de costo**: 10 (balance entre seguridad y rendimiento)
+- **Salt**: Único por contraseña (generado automáticamente)
+- **Formato**: `$2a$10$...` (60 caracteres)
 
-## 🚀 Recomendaciones de Seguridad
+#### Compatibilidad
+- **Contraseñas existentes**: Se migran automáticamente en el primer login
+- **Nuevas contraseñas**: Se encriptan inmediatamente
+- **Verificación**: Detecta automáticamente el formato de contraseña
 
-### Prioridad Alta
-1. **Implementar JWT Tokens**
-   - Usar tokens con expiración (ej: 24 horas)
-   - Almacenar en `sessionStorage` en lugar de `localStorage`
-   - Implementar refresh tokens
+### Instrucciones de Uso
 
-2. **Encriptar Contraseñas**
-   - Usar bcrypt o similar para hash de contraseñas
-   - Nunca almacenar contraseñas en texto plano
-   - Implementar salt único por usuario
+#### Para Administradores
 
-3. **Expiración de Sesiones**
-   - Sesiones automáticas después de inactividad
-   - Logout forzado después de X tiempo
-   - Notificación antes de expirar sesión
+1. **Verificar Estado Actual**:
+   - Ir a Panel de Administración → Configuración → Seguridad de Contraseñas
+   - Hacer clic en "Verificar Estado"
+   - Revisar estadísticas de encriptación
 
-### Prioridad Media
-4. **Autenticación de Dos Factores (2FA)**
-   - SMS o app authenticator para administradores
-   - Códigos de verificación por email
+2. **Ejecutar Migración** (si es necesario):
+   - Si hay contraseñas en texto plano, hacer clic en "Ir a Migración"
+   - Revisar advertencias de seguridad
+   - Ejecutar migración una sola vez
+   - Verificar que todas las contraseñas estén encriptadas
 
-5. **Logs de Seguridad**
-   - Registrar intentos de login fallidos
-   - Alertas por accesos sospechosos
-   - Historial de sesiones activas
+3. **Monitoreo Post-Migración**:
+   - Verificar que los usuarios puedan hacer login normalmente
+   - Monitorear logs por posibles errores
+   - Confirmar que no hay contraseñas en texto plano
 
-6. **Validación de IP**
-   - Restringir acceso desde IPs específicas
-   - Alertas por accesos desde nuevas ubicaciones
+#### Para Desarrolladores
 
-### Prioridad Baja
-7. **Rate Limiting**
-   - Limitar intentos de login por IP
-   - Bloquear temporalmente después de X intentos fallidos
+1. **Instalación de Dependencias**:
+   ```bash
+   npm install bcryptjs @types/bcryptjs
+   ```
 
-8. **Headers de Seguridad**
-   - CSP (Content Security Policy)
-   - HSTS (HTTP Strict Transport Security)
-   - X-Frame-Options
+2. **Uso en Código**:
+   ```typescript
+   import { hashPassword, verifyPassword, isPasswordHashed } from '@/lib/password-utils';
+   
+   // Encriptar contraseña
+   const hashedPassword = await hashPassword('miContraseña123');
+   
+   // Verificar contraseña
+   const isValid = await verifyPassword('miContraseña123', hashedPassword);
+   
+   // Verificar si ya está encriptada
+   const isHashed = isPasswordHashed(password);
+   ```
 
-## 🔧 Implementación Sugerida
+### Consideraciones de Seguridad
 
-### Paso 1: JWT Implementation
-```javascript
-// Ejemplo de implementación JWT
-import jwt from 'jsonwebtoken';
+#### ✅ Implementado
+- [x] Encriptado con bcrypt (algoritmo seguro)
+- [x] Salt único por contraseña
+- [x] Factor de costo configurable
+- [x] Migración gradual sin interrumpir servicio
+- [x] Detección automática de formato
+- [x] Logs de auditoría
+- [x] Interfaz de administración segura
 
-const generateToken = (user) => {
-  return jwt.sign(
-    { userId: user.id, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: '24h' }
-  );
-};
+#### ⚠️ Recomendaciones Adicionales
+- [ ] Implementar rate limiting en login
+- [ ] Agregar autenticación de dos factores
+- [ ] Implementar políticas de contraseñas fuertes
+- [ ] Agregar logs de intentos de login fallidos
+- [ ] Considerar rotación automática de contraseñas
 
-const verifyToken = (token) => {
-  try {
-    return jwt.verify(token, process.env.JWT_SECRET);
-  } catch (error) {
-    return null;
-  }
-};
-```
+### Migración de Datos
 
-### Paso 2: Password Hashing
-```javascript
-// Ejemplo con bcrypt
-import bcrypt from 'bcrypt';
+#### Proceso Automático
+1. Los usuarios existentes pueden hacer login normalmente
+2. En el primer login exitoso, la contraseña se encripta automáticamente
+3. No se requiere acción del usuario
 
-const hashPassword = async (password) => {
-  const saltRounds = 12;
-  return await bcrypt.hash(password, saltRounds);
-};
+#### Proceso Manual (Recomendado)
+1. Ejecutar migración desde panel de administración
+2. Encriptar todas las contraseñas de una vez
+3. Verificar estado post-migración
 
-const verifyPassword = async (password, hash) => {
-  return await bcrypt.compare(password, hash);
-};
-```
+### Monitoreo y Mantenimiento
 
-### Paso 3: Session Management
-```javascript
-// Ejemplo de gestión de sesiones
-const createSession = (user) => {
-  const token = generateToken(user);
-  sessionStorage.setItem('authToken', token);
-  sessionStorage.setItem('userData', JSON.stringify(user));
-};
+#### Logs a Monitorear
+- Errores de encriptación
+- Usuarios con contraseñas en texto plano
+- Intentos de login fallidos
+- Migraciones completadas
 
-const checkSession = () => {
-  const token = sessionStorage.getItem('authToken');
-  if (!token) return null;
-  
-  const decoded = verifyToken(token);
-  if (!decoded) {
-    logout();
-    return null;
-  }
-  
-  return decoded;
-};
-```
+#### Métricas de Seguridad
+- Porcentaje de contraseñas encriptadas
+- Tiempo promedio de migración
+- Errores de verificación de contraseñas
 
-## 📋 Checklist de Seguridad
+### Respuesta a Incidentes
 
-- [ ] Implementar JWT tokens
-- [ ] Encriptar contraseñas existentes
-- [ ] Agregar expiración de sesiones
-- [ ] Implementar 2FA para administradores
-- [ ] Configurar logs de seguridad
-- [ ] Agregar rate limiting
-- [ ] Configurar headers de seguridad
-- [ ] Implementar validación de IP
-- [ ] Crear política de contraseñas
-- [ ] Documentar procedimientos de seguridad
+#### Si se detectan contraseñas en texto plano:
+1. Ejecutar migración inmediatamente
+2. Investigar causa raíz
+3. Revisar logs de auditoría
+4. Notificar a usuarios afectados si es necesario
 
-## 🚨 Contacto de Emergencia
+#### Si hay problemas con login:
+1. Verificar que bcrypt esté funcionando
+2. Revisar logs de autenticación
+3. Comprobar compatibilidad de contraseñas
+4. Restaurar desde backup si es necesario
 
-En caso de compromiso de seguridad:
-1. Cambiar inmediatamente la contraseña del administrador
-2. Revisar logs de acceso
-3. Verificar integridad de datos
-4. Notificar a usuarios si es necesario
+### Backup y Recuperación
+
+#### Antes de Migración
+- Hacer backup completo de la base de datos
+- Documentar estado actual de contraseñas
+- Probar en entorno de desarrollo
+
+#### Durante Migración
+- Monitorear logs en tiempo real
+- Tener plan de rollback preparado
+- Comunicar a usuarios si es necesario
+
+#### Post-Migración
+- Verificar integridad de datos
+- Confirmar funcionalidad de login
+- Actualizar documentación
 
 ---
 
-**Última actualización**: Diciembre 2024
-**Responsable**: Equipo de Desarrollo Suma 
+**Nota**: Esta implementación mejora significativamente la seguridad de las contraseñas. Se recomienda ejecutar la migración lo antes posible y monitorear el sistema post-implementación. 

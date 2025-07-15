@@ -16,6 +16,7 @@ import * as firestoreService from '@/lib/firestoreService';
 import { Eye, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { z } from 'zod';
 import { cn } from "@/lib/utils";
+import { hashPassword } from '@/lib/password-utils';
 
 const PatientFormSchema = z.object({
   name: z.string().min(3, "El nombre debe tener al menos 3 caracteres."),
@@ -121,7 +122,9 @@ export function PatientsTab() {
     };
     
     if (result.data.password) {
-        updatedPatientData.password = result.data.password;
+        // Encriptar nueva contraseña
+        const hashedPassword = await hashPassword(result.data.password);
+        updatedPatientData.password = hashedPassword;
     }
     
     await firestoreService.updatePatient(editingPatient.id, updatedPatientData);
@@ -196,7 +199,7 @@ export function PatientsTab() {
                         <CardContent className="grid grid-cols-2 gap-4 text-sm">
                             <p><strong>Nombre:</strong> {selectedPatientForDetail.name}</p><p><strong>Email:</strong> {selectedPatientForDetail.email}</p>
                             <p><strong>Cédula:</strong> {selectedPatientForDetail.cedula || 'N/A'}</p><p><strong>Teléfono:</strong> {selectedPatientForDetail.phone || 'N/A'}</p>
-                            <p className="col-span-2"><strong>Contraseña:</strong> {selectedPatientForDetail.password}</p>
+                            <p className="col-span-2"><strong>Contraseña:</strong> •••••••• (Encriptada por seguridad)</p>
                         </CardContent>
                     </Card>
                     <Card><CardHeader><CardTitle className="text-lg">Historial de Citas</CardTitle></CardHeader>
