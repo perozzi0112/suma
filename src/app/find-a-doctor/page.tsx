@@ -41,7 +41,6 @@ import {
   Filter,
   X,
   Users,
-  Clock,
   Zap,
   ChevronRight,
 } from "lucide-react";
@@ -658,7 +657,7 @@ export default function FindDoctorPage() {
                     {debouncedSearchTerm && (
                       <span className="flex items-center gap-1 md:gap-2">
                         <Search className="h-3 w-3 md:h-4 md:w-4" />
-                        Resultados para "{debouncedSearchTerm}"
+                        Resultados para &quot;{debouncedSearchTerm}&quot;
                       </span>
                     )}
                   </div>

@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Star, MessageCircle, Calendar, CheckCircle, User, Plus, Edit, Trash2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Star, MessageCircle, CheckCircle, User, Plus, Edit, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -37,26 +36,22 @@ export function DoctorReviews({ doctor, onReviewAdded }: DoctorReviewsProps) {
   const isPatient = user?.role === 'patient';
   const hasReviewed = reviews.some(review => review.patientId === user?.id);
 
-  useEffect(() => {
-    fetchReviews();
-  }, [doctor.id]);
-
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
+    if (!doctor?.id) return;
     setIsLoading(true);
     try {
-      const doctorReviews = await firestoreService.getDoctorReviews(doctor.id);
-      setReviews(doctorReviews.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      const reviewsData = await firestoreService.getDoctorReviews(doctor.id);
+      setReviews(reviewsData);
     } catch (error) {
       console.error('Error fetching reviews:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'No se pudieron cargar las valoraciones.',
-      });
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [doctor?.id]);
+
+  useEffect(() => {
+    fetchReviews();
+  }, [doctor.id, fetchReviews]);
 
   const handleAddReview = () => {
     if (!user) {

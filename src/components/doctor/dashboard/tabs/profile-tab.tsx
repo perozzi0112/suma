@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import * as firestoreService from '@/lib/firestoreService';
 import type { Doctor } from '@/lib/types';
-import { Upload, X, Loader2 } from 'lucide-react';
+import { } from 'lucide-react';
 import Image from 'next/image';
 
 const DoctorProfileSchema = z.object({
@@ -126,11 +126,12 @@ export function ProfileTab({ doctorData, onProfileUpdate, onPasswordChange }: Pr
       await firestoreService.updateDoctor(doctorData.id, {...result.data, profileImage: profileImageUrl, bannerImage: bannerImageUrl});
       toast({ title: 'Perfil Actualizado' });
       onProfileUpdate();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating profile:', error);
-      
       // Si el error es por tamaño del documento, intentar limpiar datos
-      if (error.message?.includes('size') || error.code === 'resource-exhausted') {
+      const message = typeof error === 'object' && error && 'message' in error ? (error as { message?: string }).message : '';
+      const code = typeof error === 'object' && error && 'code' in error ? (error as { code?: string }).code : '';
+      if ((typeof message === 'string' && message.includes('size')) || code === 'resource-exhausted') {
         toast({ 
           variant: 'destructive', 
           title: 'Error de Tamaño', 
@@ -141,7 +142,7 @@ export function ProfileTab({ doctorData, onProfileUpdate, onPasswordChange }: Pr
           await firestoreService.cleanupDoctorData(doctorData.id);
           toast({ title: 'Datos Limpiados', description: 'Se han limpiado datos antiguos. Intenta guardar nuevamente.' });
           onProfileUpdate(); // Refrescar datos
-        } catch (cleanupError) {
+        } catch {
           toast({ 
             variant: 'destructive', 
             title: 'Error Crítico', 

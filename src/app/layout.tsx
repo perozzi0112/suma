@@ -1,5 +1,6 @@
 
 import type { Metadata, Viewport } from "next";
+import { PT_Sans } from "next/font/google";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/lib/auth";
 import { AppointmentProvider } from "@/lib/appointments";
@@ -10,6 +11,14 @@ import { AdminNotificationProvider } from "@/lib/admin-notifications";
 import { ChatNotificationProvider } from "@/lib/chat-notifications";
 import { SettingsProvider } from "@/lib/settings";
 import "./globals.css";
+
+// Configuración optimizada de fuentes con next/font
+const ptSans = PT_Sans({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  display: 'swap',
+  variable: '--font-pt-sans',
+});
 
 export const metadata: Metadata = {
   title: "SUMA",
@@ -55,7 +64,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning className={ptSans.variable}>
       <head>
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icon-192x192.png" />
@@ -65,15 +74,6 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="SUMA" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect" href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap"
-          rel="stylesheet"
-        />
       </head>
       <body className="font-body antialiased">
         <AuthProvider>

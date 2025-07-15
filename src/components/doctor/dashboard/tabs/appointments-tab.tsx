@@ -1,7 +1,7 @@
 
 "use client";
 import { useMemo, useState } from "react";
-import type { Appointment, Doctor } from "@/lib/types";
+import type { Appointment } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { DoctorAppointmentCard } from "@/components/doctor/appointment-card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,13 +12,7 @@ import { format, parseISO, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 
-interface AppointmentsTabProps {
-  appointments: Appointment[];
-  doctorData: Doctor;
-  onOpenDialog: (type: 'appointment' | 'chat', appointment: Appointment) => void;
-}
-
-export function AppointmentsTab({ appointments, doctorData, onOpenDialog }: AppointmentsTabProps) {
+export function AppointmentsTab({ appointments, onOpenDialog }: { appointments: Appointment[]; onOpenDialog: (type: 'appointment' | 'chat', appointment: Appointment) => void }) {
   const [pendingMonthFilter, setPendingMonthFilter] = useState('all');
   
   // Estados para paginación y filtros del historial
@@ -31,7 +25,7 @@ export function AppointmentsTab({ appointments, doctorData, onOpenDialog }: Appo
   console.log('  📅 Initial pendingMonthFilter:', pendingMonthFilter);
   console.log('  📋 Total appointments received:', appointments.length);
 
-  const { todayAppointments, tomorrowAppointments, upcomingAppointments, pastAppointments, filteredPastAppointments, totalPages } = useMemo(() => {
+  const { todayAppointments, tomorrowAppointments, upcomingAppointments, filteredPastAppointments, totalPages } = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayStr = format(today, 'yyyy-MM-dd');
@@ -130,7 +124,6 @@ export function AppointmentsTab({ appointments, doctorData, onOpenDialog }: Appo
       todayAppointments: todayAppts, 
       tomorrowAppointments: tomorrowAppts, 
       upcomingAppointments: upcomingAppts, 
-      pastAppointments: pastAppts,
       filteredPastAppointments: paginatedPast,
       totalPages 
     };

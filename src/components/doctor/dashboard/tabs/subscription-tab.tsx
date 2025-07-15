@@ -2,13 +2,13 @@
 "use client";
 
 import { useMemo, useState, useEffect } from 'react';
-import type { Doctor, DoctorPayment, AppSettings, BankDetail } from "@/lib/types";
+import type { Doctor, DoctorPayment, AppSettings } from "@/lib/types";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Shield, Upload, Eye, X, Calendar, DollarSign, CreditCard, AlertCircle, CheckCircle, Clock, ChevronLeft, ChevronRight, Building2, Copy, Check, BanknoteIcon } from 'lucide-react';
+import { Shield, Upload, Eye, Calendar, DollarSign, CreditCard, AlertCircle, CheckCircle, Clock, ChevronLeft, ChevronRight, Building2, Copy, Check, BanknoteIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -50,8 +50,8 @@ export function SubscriptionTab({ doctorData, doctorPayments, onOpenPaymentDialo
         setIsLoadingSettings(true);
         const settingsData = await getSettings();
         setSettings(settingsData);
-      } catch (error) {
-        console.error('Error cargando configuraciones:', error);
+      } catch {
+        console.error('Error cargando configuraciones');
         toast({
           title: "Error",
           description: "No se pudieron cargar las cuentas bancarias de SUMA",
@@ -83,7 +83,7 @@ export function SubscriptionTab({ doctorData, doctorPayments, onOpenPaymentDialo
         description: "Número de cuenta copiado al portapapeles",
       });
       setTimeout(() => setCopiedAccount(null), 2000);
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "No se pudo copiar el número de cuenta",

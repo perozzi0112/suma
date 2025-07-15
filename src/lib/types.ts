@@ -31,16 +31,19 @@ export type Coupon = {
   discountValue: number;
   minAmount?: number;
   maxDiscount?: number;
-  validFrom: any; // Firestore Timestamp
-  validTo: any; // Firestore Timestamp
+  validFrom: Timestamp; // Firestore Timestamp
+  validTo: Timestamp; // Firestore Timestamp
   maxUses?: number;
   isActive: boolean;
-  createdAt: any; // Firestore Timestamp
-  updatedAt: any; // Firestore Timestamp
+  createdAt: Timestamp; // Firestore Timestamp
+  updatedAt: Timestamp; // Firestore Timestamp
   scopeType: 'all' | 'specialty' | 'city' | 'specific';
   scopeSpecialty?: string;
   scopeCity?: string;
   scopeDoctors?: string[];
+  // Agregado para compatibilidad con el uso actual:
+  scope?: 'general' | string;
+  value?: number;
 };
 
 export type Expense = {

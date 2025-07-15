@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
-import { Clock, MapPin, Star, CheckCircle, Banknote, Landmark, Upload, DollarSign, ClipboardCheck, Tag, Loader2, XCircle, Copy } from "lucide-react";
+import { Clock, MapPin, Star, CheckCircle, Banknote, Landmark, ClipboardCheck, Tag, Loader2, XCircle, Copy } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -111,7 +111,7 @@ export default function DoctorProfilePage() {
                     });
                     router.push('/find-a-doctor');
                 }
-            } catch (error) {
+            } catch {
                  toast({
                     variant: "destructive",
                     title: "Error de Carga",
@@ -175,8 +175,6 @@ export default function DoctorProfilePage() {
     const doctorCoupons = doctor.coupons || [];
     const allApplicableCoupons = [...globalCoupons, ...doctorCoupons];
     
-    console.log('🔍 Buscando cupón:', couponInput.toUpperCase());
-    console.log('📋 Cupones disponibles:', allApplicableCoupons.map(c => ({ code: c.code, scope: c.scope })));
     
     const coupon = allApplicableCoupons.find(c => c.code.toUpperCase() === couponInput.toUpperCase());
     const totalBeforeDiscount = (doctor.consultationFee || 0) + subtotal;
@@ -184,9 +182,9 @@ export default function DoctorProfilePage() {
     if (coupon) {
       let discount = 0;
       if (coupon.discountType === 'percentage') {
-        discount = (totalBeforeDiscount * coupon.value) / 100;
+        discount = (totalBeforeDiscount * coupon.discountValue) / 100;
       } else {
-        discount = coupon.value;
+        discount = coupon.discountValue;
       }
       
       const finalDiscount = Math.min(discount, totalBeforeDiscount);
@@ -195,7 +193,7 @@ export default function DoctorProfilePage() {
       setAppliedCoupon(coupon);
       toast({
         title: "¡Cupón aplicado!",
-        description: `Se ha aplicado un descuento de ${coupon.discountType === 'percentage' ? `${coupon.value}%` : `$${coupon.value}`}.`
+        description: `Se ha aplicado un descuento de ${coupon.discountType === 'percentage' ? `${coupon.discountValue}%` : `$${coupon.discountValue}`}.`
       });
     } else {
       toast({
@@ -892,7 +890,7 @@ export default function DoctorProfilePage() {
                         <p><strong>Estado:</strong> Pendiente</p>
                     </div>
                      {appliedCoupon && (
-                      <p className="text-sm text-green-600">Cupón '{appliedCoupon.code}' aplicado (-${discountAmount.toFixed(2)}).</p>
+                      <p className="text-sm text-green-600">Cupón &apos;{appliedCoupon.code}&apos; aplicado (-${discountAmount.toFixed(2)}).</p>
                     )}
                     {paymentMethod === 'transferencia' && (
                         <p className="text-sm text-muted-foreground">El comprobante ha sido enviado y está pendiente de revisión por el doctor.</p>

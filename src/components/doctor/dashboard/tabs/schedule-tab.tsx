@@ -28,13 +28,15 @@ export function ScheduleTab({ doctorData, onScheduleUpdate }: ScheduleTabProps) 
   const [tempSchedule, setTempSchedule] = useState<Schedule | null>(doctorData.schedule);
   const [isScheduleSaved, setIsScheduleSaved] = useState(true);
 
-  const handleScheduleChange = (day: keyof Schedule, field: 'active' | 'slot', value: any, slotIndex?: number) => {
+  const handleScheduleChange = (day: keyof Schedule, field: 'active' | 'slot', value: unknown, slotIndex?: number) => {
     if (!tempSchedule) return;
     const newSchedule = { ...tempSchedule };
     if (field === 'active') {
-        newSchedule[day].active = value;
+        newSchedule[day].active = Boolean(value);
     } else if (field === 'slot' && slotIndex !== undefined) {
-        newSchedule[day].slots[slotIndex] = value;
+        if (typeof value === 'object' && value !== null) {
+          newSchedule[day].slots[slotIndex] = value as { start: string; end: string };
+        }
     }
     setTempSchedule(newSchedule);
     setIsScheduleSaved(false);

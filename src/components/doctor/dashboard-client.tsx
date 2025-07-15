@@ -1,17 +1,16 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback, Suspense } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/lib/auth';
 import { HeaderWrapper } from '@/components/header';
 import * as firestoreService from '@/lib/firestoreService';
-import type { Appointment, Doctor, Service, BankDetail, Coupon, Expense, AdminSupportTicket, ChatMessage, DoctorPayment } from '@/lib/types';
+import type { Appointment, Doctor, Service, BankDetail, Coupon, Expense, AdminSupportTicket, DoctorPayment } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, PlusCircle, Pencil, Trash2, Send, CheckCircle, Wallet, MessageCircle, Info, CreditCard, AlertCircle } from 'lucide-react';
+import { CheckCircle, Loader2, MessageCircle, CreditCard, Send, AlertCircle, Info } from 'lucide-react';
 import { useSettings } from '@/lib/settings';
 import { useDoctorNotifications } from '@/lib/doctor-notifications';
 import { useChatNotifications } from '@/lib/chat-notifications';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -79,15 +78,6 @@ const PasswordChangeSchema = z.object({
   path: ["confirmPassword"],
 });
 
-const fileToDataUri = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
-};
-
 function DashboardLoading() {
   return (
     <>
@@ -113,11 +103,11 @@ function DashboardLoading() {
 
 export function DoctorDashboardClient({ currentTab }: { currentTab: string }) {
     const { user, loading, changePassword } = useAuth();
-    const router = useRouter();
+    // const router = useRouter(); // Comentado porque no se usa actualmente
 
     const { toast } = useToast();
     const { cities, settings } = useSettings();
-    const { checkAndSetDoctorNotifications } = useDoctorNotifications();
+    const { } = useDoctorNotifications();
     const { updateUnreadChatCount } = useChatNotifications();
 
     const [isLoadingData, setIsLoadingData] = useState(true);
@@ -153,11 +143,8 @@ export function DoctorDashboardClient({ currentTab }: { currentTab: string }) {
     const [isSendingMessage, setIsSendingMessage] = useState(false);
     const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
     const [isReportingPayment, setIsReportingPayment] = useState(false);
-    
-    const handleTabChange = (value: string) => {
-      router.push(`/doctor/dashboard?view=${value}`);
-    };
 
+    // Función para recargar los datos principales del dashboard
     const fetchData = useCallback(async () => {
         if (!user || user.role !== 'doctor' || !user.id) return;
         setIsLoadingData(true);
@@ -168,48 +155,24 @@ export function DoctorDashboardClient({ currentTab }: { currentTab: string }) {
                 firestoreService.getSupportTickets(),
                 firestoreService.getDoctorPayments(),
             ]);
-            
-            // Logs para verificar cupones
-            if (doc) {
-                console.log('📋 Datos del doctor cargados:', {
-                    doctorId: doc.id,
-                    doctorName: doc.name,
-                    cupones: doc.coupons || [],
-                    cantidadCupones: (doc.coupons || []).length
-                });
-            }
-            
             setDoctorData(doc);
             setAppointments(apps);
             setSupportTickets(tickets.filter(t => t.userId === user.email));
             setDoctorPayments(payments.filter(p => p.doctorId === user.id));
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Error de carga', description: 'No se pudieron cargar los datos del panel.' });
         } finally {
             setIsLoadingData(false);
         }
-    }, [user, toast]);
+    }, [user]);
 
+    // Cargar datos al montar el componente o cuando cambie el usuario
     useEffect(() => {
-        if (user?.id) { fetchData(); }
-    }, [user, fetchData]);
+        fetchData();
+    }, [fetchData]);
 
-    useEffect(() => {
-        if (!loading && (!user || user.role !== 'doctor')) {
-          router.push('/auth/login');
-        }
-    }, [user, loading, router]);
-    
-    useEffect(() => {
-        if(user?.role === 'doctor' && appointments.length > 0 && doctorData) {
-            const userTickets = supportTickets.filter(t => t.userId === user.email);
-            checkAndSetDoctorNotifications(appointments, userTickets, doctorPayments);
-            updateUnreadChatCount(appointments);
-        }
-    }, [user, appointments, supportTickets, doctorPayments, doctorData, checkAndSetDoctorNotifications, updateUnreadChatCount]);
-    
+    // Mapa de tarifas de suscripción por ciudad
     const cityFeesMap = useMemo(() => new Map(cities.map(c => [c.name, c.subscriptionFee])), [cities]);
 
+    // Función para actualizar una cita y recargar los datos
     const handleUpdateAppointment = async (id: string, data: Partial<Appointment>) => {
         await firestoreService.updateAppointment(id, data);
         await fetchData();
@@ -245,24 +208,24 @@ export function DoctorDashboardClient({ currentTab }: { currentTab: string }) {
             if (updatedAppointment) setSelectedAppointment(updatedAppointment);
             // Actualizar contador de chat no leído
             updateUnreadChatCount(appointments);
-        } catch (error) {
+        } catch {
             toast({ variant: 'destructive', title: 'Error', description: 'No se pudo enviar el mensaje.' });
         } finally {
             setIsSendingMessage(false);
         }
     };
 
-    const handleSaveEntity = async (type: 'expense' | 'service' | 'bank' | 'coupon', data: any) => {
+    const handleSaveEntity = async (type: 'expense' | 'service' | 'bank' | 'coupon', data: unknown) => {
         if (!doctorData) return;
         const listKey = type === 'bank' ? 'bankDetails' : type === 'coupon' ? 'coupons' : `${type}s` as 'expenses' | 'services';
-        const list = (doctorData[listKey as keyof Doctor] || []) as any[];
+        const list = (doctorData[listKey as keyof Doctor] || []) as unknown[];
         const editingEntity = type === 'expense' ? editingExpense : type === 'service' ? editingService : type === 'bank' ? editingBankDetail : editingCoupon;
         
         let newList;
         if (editingEntity) {
-            newList = list.map(item => item.id === editingEntity.id ? { ...item, ...data } : item);
+            newList = list.map(item => (typeof item === 'object' && item && 'id' in item && item.id === editingEntity.id) ? { ...item, ...(data as object) } : item);
         } else {
-            newList = [...list, { ...data, id: `${type}-${Date.now()}` }];
+            newList = [...list, { ...(data as object), id: `${type}-${Date.now()}` }];
         }
         
         // Logs específicos para cupones
@@ -312,8 +275,8 @@ export function DoctorDashboardClient({ currentTab }: { currentTab: string }) {
         if (!itemToDelete || !doctorData) return;
         const { type, id } = itemToDelete;
         const listKey = type === 'bank' ? 'bankDetails' : type === 'coupon' ? 'coupons' : `${type}s` as 'expenses' | 'services';
-        const list = (doctorData[listKey as keyof Doctor] || []) as any[];
-        const newList = list.filter(item => item.id !== id);
+        const list = (doctorData[listKey as keyof Doctor] || []) as unknown[];
+        const newList = list.filter(item => (item as { id: string }).id !== id);
         
         await firestoreService.updateDoctor(doctorData.id, { [listKey]: newList });
         
@@ -405,9 +368,7 @@ ID Transacción: ${transactionId}`;
             });
         } catch (error) {
             console.error('Error reporting payment:', error);
-            
             let errorMessage = 'No se pudo procesar tu pago. Inténtalo de nuevo.';
-            
             if (error instanceof Error) {
                 if (error.message.includes('FirebaseError')) {
                     errorMessage = 'Error de Firebase. Verifica tu conexión e inténtalo de nuevo.';
@@ -427,7 +388,6 @@ ID Transacción: ${transactionId}`;
                     errorMessage = `Error: ${error.message}`;
                 }
             }
-            
             toast({ 
                 variant: 'destructive', 
                 title: 'Error al reportar pago', 
@@ -459,7 +419,7 @@ ID Transacción: ${transactionId}`;
             await firestoreService.createTestSupportTickets();
             await fetchData();
             toast({ title: 'Tickets de Prueba Creados', description: 'Se han creado 4 tickets de ejemplo para que puedas probar la funcionalidad.' });
-        } catch (error) {
+        } catch {
             toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron crear los tickets de prueba.' });
         }
     };
@@ -468,7 +428,7 @@ ID Transacción: ${transactionId}`;
         return <DashboardLoading />;
     }
     
-    const subscriptionFee = cityFeesMap.get(doctorData.city) || 0;
+    const subscriptionFee = cityFeesMap.get(doctorData?.city) || 0;
     return (
         <div className="flex flex-col min-h-screen bg-background">
             <HeaderWrapper />
@@ -479,7 +439,7 @@ ID Transacción: ${transactionId}`;
                     
                     {/* Elimina el TabsList y los TabsTrigger, y solo renderiza el contenido: */}
                         <div className="mt-6">
-                        {currentTab === "appointments" && <AppointmentsTab appointments={appointments} doctorData={doctorData} onOpenDialog={handleOpenAppointmentDialog} />}
+                        {currentTab === "appointments" && <AppointmentsTab appointments={appointments} onOpenDialog={handleOpenAppointmentDialog} />}
                         {currentTab === "finances" && <FinancesTab doctorData={doctorData} appointments={appointments} onOpenExpenseDialog={(exp) => {setEditingExpense(exp); setIsExpenseDialogOpen(true);}} onDeleteItem={(type, id) => {setItemToDelete({type, id}); setIsDeleteDialogOpen(true);}}/>}
                         {currentTab === "subscription" && <SubscriptionTab doctorData={doctorData} doctorPayments={doctorPayments} onOpenPaymentDialog={() => setIsPaymentReportOpen(true)} subscriptionFee={subscriptionFee}/>}
                         {currentTab === "profile" && <ProfileTab doctorData={doctorData} onProfileUpdate={async () => { await fetchData(); }} onPasswordChange={async (currentPassword: string, newPassword: string) => { return await changePassword(currentPassword, newPassword); }} />}
@@ -493,7 +453,7 @@ ID Transacción: ${transactionId}`;
                 </div>
             </main>
             
-            <AppointmentDetailDialog isOpen={isAppointmentDetailOpen} onOpenChange={setIsAppointmentDetailOpen} appointment={selectedAppointment} doctorServices={doctorData.services || []} onUpdateAppointment={handleUpdateAppointment} onOpenChat={handleOpenAppointmentDialog}/>
+            <AppointmentDetailDialog isOpen={isAppointmentDetailOpen} onOpenChange={setIsAppointmentDetailOpen} appointment={selectedAppointment} doctorServices={doctorData?.services || []} onUpdateAppointment={handleUpdateAppointment} onOpenChat={handleOpenAppointmentDialog}/>
 
             <Dialog open={isChatOpen} onOpenChange={(open) => {
                 setIsChatOpen(open);

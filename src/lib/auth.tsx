@@ -366,10 +366,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             title: 'Correo de Recuperación Enviado',
             description: 'Revisa tu bandeja de entrada para restablecer tu contraseña.',
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Error sending password reset email:", error);
         // Firebase Auth now uses 'auth/invalid-email' for non-existent users
-        if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email') {
+        const code = typeof error === 'object' && error && 'code' in error ? (error as { code?: string }).code : '';
+        if (code === 'auth/user-not-found' || code === 'auth/invalid-email') {
             toast({
                 variant: 'destructive',
                 title: 'Usuario no encontrado',

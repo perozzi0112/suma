@@ -13,7 +13,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button, } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -250,7 +250,7 @@ export function AppointmentDetailDialog({
                             </CardTitle>
                              {!isAttended && (
                                 <CardDescription className="text-xs pt-1">
-                                    Marca la cita como "Atendido" para poder añadir notas.
+                                    Marca la cita como &quot;Atendido&quot; para poder añadir notas.
                                 </CardDescription>
                             )}
                         </CardHeader>

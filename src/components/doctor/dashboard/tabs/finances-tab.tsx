@@ -16,17 +16,13 @@ import {
   Trash2, 
   TrendingDown, 
   TrendingUp, 
-  Calendar,
   DollarSign,
   Users,
   BarChart3,
-  PieChart,
-  Filter,
-  Search
+  PieChart
 } from 'lucide-react';
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, parseISO, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { getCurrentDateTimeInVenezuela } from '@/lib/utils';
 
 const timeRangeLabels: Record<string, string> = {
   today: 'Hoy', 
@@ -57,8 +53,6 @@ export function FinancesTab({ doctorData, appointments, onOpenExpenseDialog, onD
 
   // Calcular estadísticas financieras
   const financialStats = useMemo(() => {
-    const now = getCurrentDateTimeInVenezuela();
-    const currentPeriod = format(now, "LLLL yyyy", { locale: es });
     let filteredAppointments = appointments;
     let filteredExpenses = doctorData.expenses || [];
 

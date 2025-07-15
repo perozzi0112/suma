@@ -65,7 +65,6 @@ export function ReferralsTab({ referredDoctors, referralCode, onUpdate }: Referr
   const { toast } = useToast();
   const { cities, specialties } = useSettings();
   const [doctorPayments, setDoctorPayments] = useState<DoctorPayment[]>([]);
-  const [isLoadingPayments, setIsLoadingPayments] = useState(true);
 
   const [isDoctorDialogOpen, setIsDoctorDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -78,10 +77,8 @@ export function ReferralsTab({ referredDoctors, referralCode, onUpdate }: Referr
 
   useEffect(() => {
     const fetchPayments = async () => {
-      setIsLoadingPayments(true);
       const allPayments = await firestoreService.getDoctorPayments();
       setDoctorPayments(allPayments);
-      setIsLoadingPayments(false);
     }
     fetchPayments();
   }, [])

@@ -14,12 +14,7 @@ import {
   sendPushNotification 
 } from '@/lib/pushNotifications';
 
-interface NotificationSettingsProps {
-  userId: string;
-  userRole: 'admin' | 'doctor' | 'patient' | 'seller';
-}
-
-export function NotificationSettings({ userId, userRole }: NotificationSettingsProps) {
+export function NotificationSettings({ userId }: { userId: string }) {
   const [isSupported, setIsSupported] = useState(false);
   const [hasPermission, setHasPermission] = useState(false);
   const [isLoading, setIsLoading] = useState(false);

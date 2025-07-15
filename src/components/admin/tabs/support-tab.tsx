@@ -33,7 +33,7 @@ export function SupportTab() {
     try {
         const data = await firestoreService.getSupportTickets();
         setTickets(data);
-    } catch (error) {
+    } catch {
         toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron cargar los tickets de soporte.' });
     } finally {
         setIsLoading(false);

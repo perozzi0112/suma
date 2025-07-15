@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import * as firestoreService from '@/lib/firestoreService';
-import { Eye, Pencil, Trash2, CheckCircle, XCircle, UserPlus, Loader2 } from 'lucide-react';
+import { Loader2, User, Pencil, Trash2 } from 'lucide-react';
 import { z } from 'zod';
 import { cn } from "@/lib/utils";
 import { useSettings } from "@/lib/settings";
@@ -57,7 +57,7 @@ export function DoctorsTab() {
         ]);
         setDoctors(docs);
         setSellers(sells);
-    } catch (error) {
+    } catch {
         toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron cargar los datos de los médicos.' });
     } finally {
         setIsLoading(false);
@@ -79,7 +79,7 @@ export function DoctorsTab() {
       await firestoreService.deleteDoctor(itemToDelete.id);
       toast({ title: "Médico Eliminado" });
       fetchData();
-    } catch (error) {
+    } catch {
       toast({ variant: 'destructive', title: 'Error al eliminar', description: 'No se pudo completar la operación.' });
     } finally {
       setIsDeleteDialogOpen(false);
@@ -206,7 +206,7 @@ export function DoctorsTab() {
             <CardDescription>Visualiza, edita y gestiona los médicos de la plataforma.</CardDescription>
           </div>
           <Button onClick={() => { setEditingDoctor(null); setIsDoctorDialogOpen(true); }}>
-            <UserPlus className="mr-2 h-4 w-4"/> Añadir Médico
+            <User className="mr-2 h-4 w-4"/> Añadir Médico
           </Button>
         </CardHeader>
         <CardContent>

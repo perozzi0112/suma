@@ -52,7 +52,7 @@ export async function generatePdfReport({ title, subtitle, sections, fileName }:
         headStyles: { fillColor: [41, 128, 185] }
     });
     
-    currentY = (doc as any).lastAutoTable.finalY + 15;
+    currentY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 15;
   });
 
   doc.save(fileName);

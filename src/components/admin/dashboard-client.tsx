@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { useAdminNotifications } from '@/lib/admin-notifications';
@@ -17,7 +17,7 @@ import { Skeleton } from '../ui/skeleton';
 
 export function AdminDashboardClient({ currentTab = 'overview' }: { currentTab?: string }) {
   const { user, loading } = useAuth();
-  const { checkAndSetAdminNotifications } = useAdminNotifications();
+  const { } = useAdminNotifications();
   const router = useRouter();
 
   // Verificar si el usuario es administrador

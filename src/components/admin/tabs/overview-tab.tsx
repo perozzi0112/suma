@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Stethoscope, UserCheck, BarChart as BarChartIcon, Loader2 } from 'lucide-react';
 import * as firestoreService from '@/lib/firestoreService';
 import { useToast } from '@/hooks/use-toast';
-import type { Doctor, Seller, Patient, DoctorPayment, SellerPayment, CompanyExpense } from '@/lib/types';
+import type { Doctor } from '@/lib/types';
+import type { DoctorPayment, SellerPayment } from '@/lib/types';
 
 export function OverviewTab() {
   const [stats, setStats] = useState({

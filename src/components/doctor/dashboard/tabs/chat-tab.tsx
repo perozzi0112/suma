@@ -1,10 +1,10 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { MessageSquare, Clock, User } from "lucide-react";
 import { format, parseISO } from 'date-fns';
@@ -18,7 +18,7 @@ interface ChatTabProps {
 }
 
 export function ChatTab({ appointments = [], onOpenChat }: ChatTabProps) {
-  const { user } = useAuth();
+  const { } = useAuth();
   
   // Filtrar solo citas que tienen mensajes
   const chatAppointments = useMemo(() => {

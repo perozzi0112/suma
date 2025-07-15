@@ -6,6 +6,7 @@ import * as firestoreService from './firestoreService';
 import type { AppSettings, Coupon, CompanyExpense, BankDetail, City } from './types';
 import { useToast } from '@/hooks/use-toast';
 import { getCurrentDateTimeInVenezuela } from './utils';
+import { Timestamp } from 'firebase/firestore';
 
 interface SettingsContextType {
   settings: AppSettings | null;
@@ -22,7 +23,7 @@ interface SettingsContextType {
   billingCycleStartDay: number;
   billingCycleEndDay: number;
 
-  updateSetting: (key: keyof AppSettings, value: any) => Promise<void>;
+  updateSetting: (key: keyof AppSettings, value: unknown) => Promise<void>;
   
   addListItem: (listName: 'cities' | 'specialties' | 'companyBankDetails' | 'companyExpenses' | 'coupons', item: City | string | Omit<BankDetail, 'id'> | Omit<CompanyExpense, 'id'> | Omit<Coupon, 'id'>) => Promise<void>;
   updateListItem: (listName: 'cities' | 'specialties' | 'companyBankDetails' | 'companyExpenses' | 'coupons', itemId: string, newItem: City | string | BankDetail | CompanyExpense | Coupon) => Promise<void>;
@@ -91,11 +92,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
                         description: 'Cupón de bienvenida',
                         discountType: 'percentage' as const,
                         discountValue: 20,
-                        validFrom: getCurrentDateTimeInVenezuela().toISOString().split('T')[0],
-                        validTo: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 1 año
+                        validFrom: Timestamp.fromDate(new Date(getCurrentDateTimeInVenezuela().toISOString().split('T')[0])),
+                        validTo: Timestamp.fromDate(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)), // 1 año
                         isActive: true,
-                        createdAt: getCurrentDateTimeInVenezuela().toISOString(),
-                        updatedAt: getCurrentDateTimeInVenezuela().toISOString(),
+                        createdAt: Timestamp.fromDate(getCurrentDateTimeInVenezuela()),
+                        updatedAt: Timestamp.fromDate(getCurrentDateTimeInVenezuela()),
                         scopeType: 'all' as const
                     }
                 ],
@@ -164,15 +165,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     fetchData();
   }, [fetchData]);
 
-  const updateSetting = useCallback(async (key: keyof AppSettings, value: any) => {
+  const updateSetting = useCallback(async (key: keyof AppSettings, value: unknown) => {
     if (!settings) return;
     
     // Filtrar campos undefined del valor antes de enviar a Firestore
     const cleanValue = value;
     if (typeof cleanValue === 'object' && cleanValue !== null) {
       Object.keys(cleanValue).forEach(k => {
-        if (cleanValue[k] === undefined) {
-          delete cleanValue[k];
+        if ((cleanValue as Record<string, unknown>)[k] === undefined) {
+          delete (cleanValue as Record<string, unknown>)[k];
         }
       });
     }
@@ -182,35 +183,39 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     setSettings(newSettings);
   }, [settings]);
   
-  const addListItem = useCallback(async (listName: 'cities' | 'specialties' | 'companyBankDetails' | 'companyExpenses' | 'coupons', item: any) => {
+  const addListItem = useCallback(async (listName: 'cities' | 'specialties' | 'companyBankDetails' | 'companyExpenses' | 'coupons', item: City | string | Omit<BankDetail, 'id'> | Omit<CompanyExpense, 'id'> | Omit<Coupon, 'id'>) => {
     if (!settings) return;
     
-    const list = (settings[listName] as any[]) || [];
+    const list = (settings[listName] as unknown[]) || [];
     
     // Check for duplicates
-    if (listName === 'cities' && list.some(c => c && c.name && c.name.toLowerCase() === item.name.toLowerCase())) {
-        toast({ variant: 'destructive', title: 'Elemento duplicado', description: `La ciudad "${item.name}" ya existe.` });
+    if (listName === 'cities' && typeof item === 'object' && 'name' in item && list.some(c => typeof c === 'object' && c !== null && 'name' in c && typeof ((c as Record<string, unknown>).name) === 'string' && ((c as Record<string, unknown>).name as string).toLowerCase() === (item as City).name.toLowerCase())) {
+        toast({ variant: 'destructive', title: 'Elemento duplicado', description: `La ciudad "${(item as City).name}" ya existe.` });
         return;
     }
-    if (listName === 'specialties' && list.map(i => i.toLowerCase()).includes(item.toLowerCase())) {
+    if (listName === 'specialties' && typeof item === 'string' && list.map(i => typeof i === 'string' ? (i as string).toLowerCase() : '').includes(item.toLowerCase())) {
         toast({ variant: 'destructive', title: 'Elemento duplicado', description: `"${item}" ya existe en la lista.` });
         return;
     }
-    if (listName === 'coupons' && list.some(c => c && c.code && c.code.toUpperCase() === item.code.toUpperCase())) {
-        toast({ variant: 'destructive', title: 'Elemento duplicado', description: `El cupón "${item.code}" ya existe.` });
+    if (listName === 'coupons' && typeof item === 'object' && 'code' in item && list.some(c => typeof c === 'object' && c !== null && 'code' in c && typeof ((c as Record<string, unknown>).code) === 'string' && ((c as Record<string, unknown>).code as string).toUpperCase() === (item as Omit<Coupon, 'id'>).code.toUpperCase())) {
+        toast({ variant: 'destructive', title: 'Elemento duplicado', description: `El cupón "${(item as Omit<Coupon, 'id'>).code}" ya existe.` });
         return;
     }
 
     let newItem;
     if (listName === 'companyExpenses' || listName === 'companyBankDetails' || listName === 'coupons') {
         // Limpiar campos undefined del item antes de crear el nuevo elemento
-        const cleanItem = { ...item };
-        Object.keys(cleanItem).forEach(k => {
-            if (cleanItem[k] === undefined) {
-                delete cleanItem[k];
-            }
-        });
-        newItem = { ...cleanItem, id: `${listName}-${Date.now()}` };
+        if (typeof item === 'object') {
+            const cleanItem = { ...item } as Record<string, unknown>;
+            Object.keys(cleanItem).forEach(k => {
+                if (cleanItem[k] === undefined) {
+                    delete cleanItem[k];
+                }
+            });
+            newItem = { ...cleanItem, id: `${listName}-${Date.now()}` };
+        } else {
+            newItem = item;
+        }
     } else {
         newItem = item;
     }
@@ -219,18 +224,18 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     await updateSetting(listName, newList);
   }, [settings, updateSetting, toast]);
 
-  const updateListItem = useCallback(async (listName: 'cities' | 'specialties' | 'companyBankDetails' | 'companyExpenses' | 'coupons', itemIdOrName: string, newItem: any) => {
+  const updateListItem = useCallback(async (listName: 'cities' | 'specialties' | 'companyBankDetails' | 'companyExpenses' | 'coupons', itemIdOrName: string, newItem: City | string | BankDetail | CompanyExpense | Coupon) => {
     if (!settings) return;
 
-    const list = (settings[listName] as any[]) || [];
+    const list = (settings[listName] as unknown[]) || [];
     let newList;
     
     if (listName === 'cities') {
-        newList = list.map(item => (item && item.name === itemIdOrName) ? newItem : item);
+        newList = list.map(item => (item && (item as City).name === itemIdOrName) ? newItem : item);
     } else if (listName === 'specialties') {
         newList = list.map(item => item === itemIdOrName ? newItem : item);
     } else { // bank, expense, coupon
-        newList = list.map(item => (item && item.id === itemIdOrName) ? { ...item, ...newItem } : item);
+        newList = list.map(item => (item && (item as { id?: string }).id === itemIdOrName) ? { ...(item as object), ...(newItem as object) } : item);
     }
 
     await updateSetting(listName, newList);
@@ -239,15 +244,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const deleteListItem = useCallback(async (listName: 'cities' | 'specialties' | 'companyBankDetails' | 'companyExpenses' | 'coupons', itemToDeleteIdOrName: string) => {
     if (!settings) return;
 
-    const list = (settings[listName] as any[]) || [];
+    const list = (settings[listName] as unknown[]) || [];
     let newList;
     
     if (listName === 'cities') {
-        newList = list.filter(item => item && item.name !== itemToDeleteIdOrName);
+        newList = list.filter(item => item && (item as City).name !== itemToDeleteIdOrName);
     } else if (listName === 'specialties') {
         newList = list.filter(item => item !== itemToDeleteIdOrName);
     } else { // bank, expense, coupon
-        newList = list.filter(item => item && item.id !== itemToDeleteIdOrName);
+        newList = list.filter(item => item && (item as { id?: string }).id !== itemToDeleteIdOrName);
     }
 
     await updateSetting(listName, newList);

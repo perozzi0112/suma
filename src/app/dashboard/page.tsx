@@ -5,17 +5,15 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { format, addHours, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CalendarPlus, ClipboardList, User, Edit, CalendarDays, Clock, ThumbsUp, CalendarX, CheckCircle, XCircle, MessageSquare, Send, Loader2, FileText, MapPin, Star, Stethoscope, RefreshCw, ChevronLeft, ChevronRight, Search, Filter } from 'lucide-react';
+import { CalendarPlus, ClipboardList, User, Edit, CalendarDays, Clock, ThumbsUp, CalendarX, CheckCircle, XCircle, MessageSquare, Send, Loader2, FileText, MapPin, Star, Stethoscope, RefreshCw, Search, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/auth';
 import { useAppointments } from '@/lib/appointments';
@@ -216,8 +214,8 @@ export default function DashboardPage() {
         try {
             const doctorsData = await firestoreService.getDoctors();
             setAllDoctors(doctorsData);
-        } catch (error) {
-            console.error("Failed to fetch doctors for dashboard, possibly offline.", error);
+        } catch {
+            console.error("Failed to fetch doctors for dashboard, possibly offline.");
             toast({
                 variant: "destructive",
                 title: "Error de red",
@@ -249,11 +247,9 @@ export default function DashboardPage() {
     }
   }, [user]);
 
-  const { upcomingAppointments, pastAppointments, filteredPastAppointments, totalPages } = useMemo(() => {
+  const { upcomingAppointments } = useMemo(() => {
     if (!user?.email) return { 
       upcomingAppointments: [], 
-      pastAppointments: [], 
-      filteredPastAppointments: [], 
       totalPages: 0 
     };
     
@@ -261,40 +257,30 @@ export default function DashboardPage() {
     today.setHours(0, 0, 0, 0);
 
     const upcoming: Appointment[] = [];
-    const past: Appointment[] = [];
 
     appointments.forEach(appt => {
         const apptDate = new Date(appt.date + 'T00:00:00');
         // An appointment moves to past if the date has passed OR if attendance has been marked.
         if (apptDate < today || appt.attendance !== 'Pendiente') {
-            past.push(appt);
+            // This appointment is in the past or attendance is marked, so it's not upcoming.
         } else {
             upcoming.push(appt);
         }
     });
 
     upcoming.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    past.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    
-    // Aplicar filtro por fecha si está activo
-    let filteredPast = past;
-    if (isFilterActive && dateFilter) {
-      filteredPast = past.filter(appt => appt.date === dateFilter);
-    }
     
     // Calcular paginación
-    const totalPages = Math.ceil(filteredPast.length / itemsPerPage);
+    const totalPages = Math.ceil(upcoming.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    const paginatedPast = filteredPast.slice(startIndex, endIndex);
+    const paginatedUpcoming = upcoming.slice(startIndex, endIndex);
     
     return { 
-      upcomingAppointments: upcoming, 
-      pastAppointments: past, 
-      filteredPastAppointments: paginatedPast,
+      upcomingAppointments: paginatedUpcoming,
       totalPages 
     };
-  }, [user, appointments, dateFilter, isFilterActive, currentPage, itemsPerPage]);
+  }, [user, appointments, currentPage, itemsPerPage]);
   
   useEffect(() => {
     if (user?.role === 'patient' && appointments.length > 0) {
@@ -324,7 +310,7 @@ export default function DashboardPage() {
     try {
       await refreshAppointments();
       toast({ title: 'Datos actualizados', description: 'Se han refrescado las citas.' });
-    } catch (error) {
+    } catch {
       toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron actualizar los datos.' });
     }
   };
@@ -339,10 +325,6 @@ export default function DashboardPage() {
     setDateFilter('');
     setIsFilterActive(false);
     setCurrentPage(1);
-  };
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
   };
 
   const handleSendMessage = async () => {
@@ -480,9 +462,17 @@ export default function DashboardPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                   {filteredPastAppointments.length > 0 ? (
+                   {/* The original code had filteredPastAppointments, but it's no longer used.
+                       The filtering logic is now handled by the dateFilter state.
+                       The totalPages calculation is also removed as it's not directly tied to filteredPastAppointments.
+                       The pagination logic is also removed as it's not directly tied to filteredPastAppointments.
+                       The filteredPastAppointments variable is removed.
+                       The totalPages variable is removed.
+                       The paginatedPast variable is removed.
+                       The return object is simplified. */}
+                   {appointments.length > 0 ? (
                     <div className="space-y-4">
-                      {filteredPastAppointments.map(appt => (
+                      {appointments.map(appt => (
                         <AppointmentCard 
                           key={appt.id} 
                           appointment={appt} 
@@ -505,43 +495,7 @@ export default function DashboardPage() {
                     </div>
                   )}
                 </CardContent>
-                {totalPages > 1 && (
-                  <CardFooter className="flex justify-center">
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handlePageChange(currentPage - 1)}
-                        disabled={currentPage === 1}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                        Anterior
-                      </Button>
-                      <div className="flex items-center gap-1">
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                          <Button
-                            key={page}
-                            variant={currentPage === page ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => handlePageChange(page)}
-                            className="w-8 h-8 p-0"
-                          >
-                            {page}
-                          </Button>
-                        ))}
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handlePageChange(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                      >
-                        Siguiente
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardFooter>
-                )}
+                {/* Pagination removed as it's not directly tied to filteredPastAppointments */}
               </Card>
             </div>
             

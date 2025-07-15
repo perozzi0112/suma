@@ -2,7 +2,7 @@ import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import { app } from './firebase';
 
 // Inicializar Firebase Messaging solo en el cliente
-let messaging: any = null;
+let messaging: ReturnType<typeof getMessaging> | null = null;
 
 if (typeof window !== 'undefined' && typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
   try {
@@ -63,7 +63,7 @@ export async function requestNotificationPermission(): Promise<string | null> {
 }
 
 // Escuchar notificaciones en primer plano
-export function onForegroundMessage(callback: (payload: any) => void) {
+export function onForegroundMessage(callback: (payload: unknown) => void) {
   if (typeof window === 'undefined' || !messaging) {
     console.warn('Firebase Messaging no disponible en este entorno');
     return () => {};

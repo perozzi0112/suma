@@ -12,22 +12,22 @@ import {
   query,
   where,
   writeBatch,
-  CollectionReference,
   Timestamp,
   arrayUnion,
+  FieldValue,
 } from 'firebase/firestore';
-import type { Doctor, Seller, Patient, Appointment, Coupon, CompanyExpense, BankDetail, Service, Expense, AdminSupportTicket, SellerPayment, DoctorPayment, AppSettings, MarketingMaterial, ChatMessage } from './types';
+import type { Doctor, Seller, Patient, Appointment, AdminSupportTicket, SellerPayment, DoctorPayment, AppSettings, MarketingMaterial, ChatMessage } from './types';
 import { storage } from './firebase';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL, StorageReference } from 'firebase/storage';
 
 
 // Helper to convert Firestore Timestamps to strings
-const convertTimestamps = (data: any) => {
+const convertTimestamps = (data: Record<string, unknown>) => {
     for (const key in data) {
         if (data[key] instanceof Timestamp) {
             data[key] = data[key].toDate().toISOString();
         } else if (typeof data[key] === 'object' && data[key] !== null) {
-            convertTimestamps(data[key]);
+            convertTimestamps(data[key] as Record<string, unknown>);
         }
     }
     return data;
@@ -206,9 +206,11 @@ export const updateDoctor = async (id: string, data: Partial<Doctor>) => {
     try {
         const optimizedData = optimizeDoctorData(data);
         return await updateDoc(doc(db, 'doctors', id), optimizedData);
-    } catch (error: any) {
+    } catch (error: unknown) {
         // Si el error es por tamaño del documento, intentar limpiar datos antiguos
-        if (error.code === 'resource-exhausted' || error.message?.includes('size')) {
+        const code = typeof error === 'object' && error && 'code' in error ? (error as { code?: string }).code : '';
+        const message = typeof error === 'object' && error && 'message' in error ? (error as { message?: string }).message : '';
+        if (code === 'resource-exhausted' || (typeof message === 'string' && message.includes('size'))) {
             console.warn('Documento del doctor demasiado grande, limpiando datos antiguos...');
             
             // Obtener el documento actual
@@ -369,10 +371,12 @@ export const addSupportTicket = async (ticketData: Omit<AdminSupportTicket, 'id'
         timestamp: new Date().toISOString(),
     };
 
-    const newTicketData: any = {
+    const newTicketData: Omit<AdminSupportTicket, 'id'> & { messages: ChatMessage[]; readByAdmin: boolean; readBySeller?: boolean; readByDoctor?: boolean } = {
         ...ticketData,
         messages: [initialMessage],
         readByAdmin: false,
+        readBySeller: false,
+        readByDoctor: false
     };
     
     if (ticketData.userRole === 'seller') {
@@ -392,7 +396,7 @@ export const addMessageToSupportTicket = async (ticketId: string, message: Omit<
         timestamp: new Date().toISOString()
     };
     
-    const updateData: any = {
+    const updateData: { messages: FieldValue; readByAdmin?: boolean; status?: string; readBySeller?: boolean; [key: string]: unknown } = {
         messages: arrayUnion(newMessage)
     };
 
@@ -422,9 +426,10 @@ export const updateSettings = async (data: Partial<AppSettings>) => {
     try {
         // Intentar actualizar primero
         return await updateDoc(doc(db, 'settings', 'main'), data);
-    } catch (error: any) {
+    } catch (error: unknown) {
         // Si el documento no existe, crearlo
-        if (error.code === 'not-found' || error.message?.includes('not found')) {
+        if (error && typeof error === 'object' && 'code' in error && error.code === 'not-found' || 
+            error && typeof error === 'object' && 'message' in error && typeof error.message === 'string' && error.message.includes('not found')) {
             console.log('📝 Settings document does not exist, creating it...');
             return await setDoc(doc(db, 'settings', 'main'), data);
         }
@@ -536,7 +541,7 @@ export async function uploadImage(file: File, path: string, maxSizeMB: number = 
       setTimeout(() => reject(new Error(`Timeout: Subida tardó más de ${timeoutMs/1000} segundos`)), timeoutMs);
     });
     
-    const snapshot = await Promise.race([uploadPromise, timeoutPromise]) as any;
+    const snapshot = await Promise.race([uploadPromise, timeoutPromise]) as { ref: StorageReference };
     const uploadTime = Date.now() - startTime;
     console.log('✅ Archivo subido exitosamente en', uploadTime, 'ms');
     
@@ -624,7 +629,7 @@ export async function uploadPaymentProof(file: File, path: string): Promise<stri
       setTimeout(() => reject(new Error('Timeout: Subida tardó más de 15 segundos')), 15000);
     });
     
-    const snapshot = await Promise.race([uploadPromise, timeoutPromise]) as any;
+    const snapshot = await Promise.race([uploadPromise, timeoutPromise]) as { ref: StorageReference };
     const uploadTime = Date.now() - startTime;
     
     console.log('✅ Subida completada en', uploadTime, 'ms');
@@ -935,7 +940,7 @@ export const forceCreatePendingPayment = async () => {
     console.log('🚀 Forzando creación de pago pendiente...');
     
     // Obtener el primer médico disponible o crear uno
-    let doctors = await getDoctors();
+    const doctors = await getCollectionData<Doctor>('doctors');
     let doctorId = '';
     
     if (doctors.length === 0) {

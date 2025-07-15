@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { DollarSign, Wallet, TrendingDown, TrendingUp, ChevronLeft, ChevronRight, Eye, Landmark, PlusCircle, Pencil, Trash2, Loader2 } from 'lucide-react';
-import { format, startOfDay, endOfDay, startOfWeek, endOfMonth, startOfMonth, endOfYear, startOfYear, getMonth, getYear, parseISO } from 'date-fns';
+import { format, startOfDay, endOfDay, startOfWeek, endOfMonth, startOfMonth, endOfYear, startOfYear, getMonth, getYear } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useSettings } from '@/lib/settings';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
@@ -55,7 +55,6 @@ export function FinancesTab({ sellerData, sellerPayments, onUpdate }: FinancesTa
   
   const [referredDoctors, setReferredDoctors] = useState<Doctor[]>([]);
   const [doctorPayments, setDoctorPayments] = useState<DoctorPayment[]>([]);
-  const [isLoadingDoctors, setIsLoadingDoctors] = useState(true);
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
@@ -65,7 +64,6 @@ export function FinancesTab({ sellerData, sellerPayments, onUpdate }: FinancesTa
   useEffect(() => {
     const fetchReferredDoctors = async () => {
       if (!sellerData.id) return;
-      setIsLoadingDoctors(true);
       try {
         const [allDocs, allPayments] = await Promise.all([
           firestoreService.getDoctors(),
@@ -77,7 +75,6 @@ export function FinancesTab({ sellerData, sellerPayments, onUpdate }: FinancesTa
         console.error('Error loading data:', error);
         toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron cargar los datos.' });
       } finally {
-        setIsLoadingDoctors(false);
       }
     }
     fetchReferredDoctors();

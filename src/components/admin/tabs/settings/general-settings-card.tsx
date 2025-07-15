@@ -6,17 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Save, Upload, X, HelpCircle, CheckCircle, AlertCircle, Image as ImageIcon, Loader2, Settings, MapPin, CreditCard, Stethoscope, Shield, AlertTriangle, Calendar, Smartphone, Monitor } from 'lucide-react';
+import { } from "@/components/ui/textarea";
+import { Save, Upload, X, HelpCircle, CheckCircle, AlertCircle, Image as ImageIcon, Loader2, Settings, MapPin, CreditCard, Stethoscope, Shield, AlertTriangle, Calendar } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import type { AppSettings } from '@/lib/types';
 import * as firestoreService from '@/lib/firestoreService';
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 interface GeneralSettingsCardProps {
   logoUrl?: string;
@@ -27,11 +27,9 @@ interface GeneralSettingsCardProps {
   allSpecialties?: string[];
   billingCycleStartDay?: number;
   billingCycleEndDay?: number;
-  subscriptionFee?: number;
-  onSave: (key: keyof AppSettings, value: any) => Promise<void>;
+  onSave: (key: keyof AppSettings, value: unknown) => Promise<void>;
   onAddBeautySpecialty?: (specialty: string) => Promise<void>;
   onRemoveBeautySpecialty?: (specialty: string) => Promise<void>;
-  onUpdate?: () => void;
 }
 
 const CURRENCIES = [
@@ -61,16 +59,13 @@ export function GeneralSettingsCard({
   allSpecialties = [],
   billingCycleStartDay = 1,
   billingCycleEndDay = 31,
-  subscriptionFee = 50,
   onSave,
   onAddBeautySpecialty,
-  onRemoveBeautySpecialty,
-  onUpdate 
-}: GeneralSettingsCardProps) {
-  const [isLoading, setIsLoading] = useState(false);
+  onRemoveBeautySpecialty
+}: GeneralSettingsCardProps): JSX.Element {
+  const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [logoUrlInput, setLogoUrlInput] = useState(logoUrl || '');
   const [heroUrlInput, setHeroUrlInput] = useState(heroImageUrl || '');
   const [logoValidation, setLogoValidation] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle');
@@ -83,7 +78,7 @@ export function GeneralSettingsCard({
     return new Promise((resolve, reject) => {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
-      const img = new Image();
+      const img = new window.Image();
       
       img.onload = () => {
         // Calcular nuevas dimensiones manteniendo proporción
@@ -235,13 +230,8 @@ export function GeneralSettingsCard({
               toast({ title: 'Logo Subido', description: 'El logo ha sido comprimido y actualizado exitosamente.' });
           }
       } catch (error) {
-          console.error('Error detallado en handleFileUpload:', error);
-          
-          let errorMessage = 'No se pudo procesar la imagen. Intenta de nuevo.';
-          
-          if (error instanceof Error) {
-              errorMessage = error.message;
-          }
+          console.error('Error al guardar configuración:', error);
+          const errorMessage = 'No se pudo procesar la imagen. Intenta de nuevo.';
           
           toast({ variant: 'destructive', title: 'Error', description: errorMessage });
       } finally {
@@ -258,7 +248,7 @@ export function GeneralSettingsCard({
           const response = await fetch(url, { method: 'HEAD' });
           const contentType = response.headers.get('content-type');
           return contentType?.startsWith('image/') || false;
-      } catch (error) {
+      } catch {
           return false;
       }
   };
@@ -311,6 +301,7 @@ export function GeneralSettingsCard({
 
           toast({ title: 'Configuración Guardada', description: 'Los ajustes generales han sido actualizados.' });
       } catch (error) {
+          console.error('Error al guardar configuración:', error);
           toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar la configuración.' });
       } finally {
           setIsSaving(false);
@@ -323,7 +314,7 @@ export function GeneralSettingsCard({
       try {
           await onAddBeautySpecialty(specialty);
           toast({ title: 'Especialidad Añadida', description: `La especialidad "${specialty}" ha sido añadida.` });
-      } catch (error) {
+      } catch {
           toast({ variant: 'destructive', title: 'Error', description: 'No se pudo añadir la especialidad.' });
       }
   };
@@ -334,7 +325,7 @@ export function GeneralSettingsCard({
       try {
           await onRemoveBeautySpecialty(specialty);
           toast({ title: 'Especialidad Eliminada', description: `La especialidad "${specialty}" ha sido eliminada.` });
-      } catch (error) {
+      } catch {
           toast({ variant: 'destructive', title: 'Error', description: 'No se pudo eliminar la especialidad.' });
       }
   };
@@ -429,7 +420,7 @@ export function GeneralSettingsCard({
                   
                   {logoUrl && (
                     <div className="flex items-center gap-3 p-3 bg-background rounded-lg border">
-                      <img src={logoUrl} alt="Logo actual" className="h-8 w-auto" />
+                      <Image src={logoUrl} alt="Logo actual" width={64} height={32} className="h-8 w-auto" unoptimized />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">Logo actual</p>
                         <p className="text-xs text-muted-foreground">Vista previa</p>
@@ -487,7 +478,7 @@ export function GeneralSettingsCard({
                   
                   {heroImageUrl && (
                     <div className="flex items-center gap-3 p-3 bg-background rounded-lg border">
-                      <img src={heroImageUrl} alt="Imagen principal actual" className="h-12 w-auto rounded" />
+                      <Image src={heroImageUrl} alt="Imagen principal actual" width={192} height={48} className="h-12 w-auto rounded" unoptimized />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">Imagen principal actual</p>
                         <p className="text-xs text-muted-foreground">Vista previa</p>
@@ -602,7 +593,7 @@ export function GeneralSettingsCard({
               Especialidades de Belleza
             </h3>
             <p className="text-sm text-muted-foreground">
-              Selecciona las especialidades médicas que aparecerán como "Especialidades de Belleza" en la búsqueda de médicos.
+              Selecciona las especialidades médicas que aparecerán como &quot;Especialidades de Belleza&quot; en la búsqueda de médicos.
             </p>
             
             <div className="space-y-4">
@@ -652,7 +643,7 @@ export function GeneralSettingsCard({
                   <div className="text-center py-8 text-muted-foreground">
                     <Stethoscope className="h-8 w-8 mx-auto mb-2" />
                     <p>No hay especialidades médicas disponibles</p>
-                    <p className="text-sm">Primero crea especialidades en la pestaña "Especialidades"</p>
+                    <p className="text-sm">Primero crea especialidades en la pestaña &quot;Especialidades&quot;</p>
                   </div>
                 )}
               </div>
@@ -753,7 +744,7 @@ export function GeneralSettingsCard({
         
         <CardFooter className="flex flex-col sm:flex-row justify-between gap-4">
           <div className="text-sm text-muted-foreground text-center sm:text-left">
-            Los cambios se guardan automáticamente al hacer clic en "Guardar Cambios"
+            Los cambios se guardan automáticamente al hacer clic en &quot;Guardar Cambios&quot;
           </div>
           <Button type="submit" disabled={isSaving || isUploading} className="w-full sm:w-auto">
             <Save className="mr-2 h-4 w-4"/>

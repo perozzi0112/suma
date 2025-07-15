@@ -10,11 +10,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { PlusCircle, Pencil, Trash2, Loader2, Building2, CreditCard, User, Hash } from 'lucide-react';
+import { Landmark, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import { cn } from '@/lib/utils';
 import { z } from 'zod';
 
 const BankDetailFormSchema = z.object({
@@ -80,7 +77,7 @@ export function BankManagementCard({ bankDetails, onAddBankDetail, onUpdateBankD
             }
             setIsDialogOpen(false);
             setEditingBankDetail(null);
-        } catch (error) {
+        } catch {
             toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar la cuenta bancaria.' });
         } finally {
             setIsSaving(false);
@@ -96,7 +93,7 @@ export function BankManagementCard({ bankDetails, onAddBankDetail, onUpdateBankD
             toast({ title: 'Cuenta eliminada', description: 'La cuenta bancaria ha sido eliminada exitosamente.' });
             setIsDeleteDialogOpen(false);
             setItemToDelete(null);
-        } catch (error) {
+        } catch {
             toast({ variant: 'destructive', title: 'Error', description: 'No se pudo eliminar la cuenta.' });
         } finally {
             setIsDeleting(false);
@@ -115,7 +112,7 @@ export function BankManagementCard({ bankDetails, onAddBankDetail, onUpdateBankD
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div className="space-y-1">
                             <CardTitle className="text-xl flex items-center gap-2">
-                                <Building2 className="h-5 w-5 text-primary" />
+                                <Landmark className="h-5 w-5 text-primary" />
                                 Cuentas Bancarias de SUMA
                             </CardTitle>
                             <CardDescription className="text-base">
@@ -123,7 +120,7 @@ export function BankManagementCard({ bankDetails, onAddBankDetail, onUpdateBankD
                             </CardDescription>
                         </div>
                         <Button onClick={() => openDialog(null)} className="shrink-0 w-full sm:w-auto">
-                            <PlusCircle className="mr-2 h-4 w-4"/>
+                            <Landmark className="mr-2 h-4 w-4"/>
                             Añadir Cuenta
                         </Button>
                     </div>
@@ -185,7 +182,7 @@ export function BankManagementCard({ bankDetails, onAddBankDetail, onUpdateBankD
                         
                         {bankDetails.length === 0 && (
                             <div className="text-center py-8 text-muted-foreground">
-                                <Building2 className="h-8 w-8 mx-auto mb-2" />
+                                <Landmark className="h-8 w-8 mx-auto mb-2" />
                                 <p>No hay cuentas bancarias registradas</p>
                                 <p className="text-sm">Comienza añadiendo la primera cuenta</p>
                             </div>
@@ -246,7 +243,7 @@ export function BankManagementCard({ bankDetails, onAddBankDetail, onUpdateBankD
                         
                         {bankDetails.length === 0 && (
                             <div className="text-center py-8 text-muted-foreground">
-                                <Building2 className="h-8 w-8 mx-auto mb-2" />
+                                <Landmark className="h-8 w-8 mx-auto mb-2" />
                                 <p>No hay cuentas bancarias registradas</p>
                                 <p className="text-sm">Comienza añadiendo la primera cuenta</p>
                             </div>
@@ -260,7 +257,7 @@ export function BankManagementCard({ bankDetails, onAddBankDetail, onUpdateBankD
                 <DialogContent className="sm:max-w-md max-w-[95vw] max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
-                            <Building2 className="h-5 w-5" />
+                            <Landmark className="h-5 w-5" />
                             {editingBankDetail ? 'Editar Cuenta' : 'Nueva Cuenta'}
                         </DialogTitle>
                     </DialogHeader>

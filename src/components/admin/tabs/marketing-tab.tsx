@@ -12,10 +12,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import * as firestoreService from '@/lib/firestoreService';
-import { PlusCircle, ShoppingBag, ImageIcon, Video, FileText, Link as LinkIcon, Pencil, Trash2, Upload, Loader2 } from 'lucide-react';
+import { PlusCircle, ShoppingBag, ImageIcon, Video, FileText, Link as LinkIcon, Loader2 } from 'lucide-react';
 import { z } from 'zod';
 import { MarketingMaterialCard } from './marketing-card';
-import { cn } from '@/lib/utils';
+import { } from '@/lib/utils';
 
 const MarketingMaterialSchema = z.object({
   title: z.string().min(3, "El título es requerido."),
@@ -54,7 +54,7 @@ export function MarketingTab() {
     try {
         const materials = await firestoreService.getMarketingMaterials();
         setMarketingMaterials(materials);
-    } catch (error) {
+    } catch {
         toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron cargar los materiales de marketing.' });
     } finally {
         setIsLoading(false);
@@ -76,7 +76,7 @@ export function MarketingTab() {
       await firestoreService.deleteMarketingMaterial(itemToDelete.id);
       toast({ title: "Material Eliminado" });
       fetchData();
-    } catch (error) {
+    } catch {
       toast({ variant: 'destructive', title: 'Error al eliminar', description: 'No se pudo completar la operación.' });
     } finally {
       setIsDeleteDialogOpen(false);
@@ -123,7 +123,7 @@ export function MarketingTab() {
           fetchData();
           setIsMarketingDialogOpen(false);
           setEditingMaterial(null);
-      } catch (error) {
+      } catch {
           toast({ variant: 'destructive', title: 'Error al procesar archivo', description: 'No se pudo leer el archivo seleccionado.' });
       } finally {
           setIsSavingMaterial(false);
@@ -230,7 +230,7 @@ export function MarketingTab() {
               <AlertDialogHeader>
                   <AlertDialogTitle>¿Estás seguro que deseas eliminar?</AlertDialogTitle>
                   <AlertDialogDescription>
-                      Esta acción es permanente y no se puede deshacer. Se eliminará "{itemToDelete?.title}" del sistema.
+                      Esta acción es permanente y no se puede deshacer. Se eliminará &quot;{itemToDelete?.title}&quot; del sistema.
                   </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

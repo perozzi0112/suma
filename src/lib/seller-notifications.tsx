@@ -12,9 +12,9 @@ interface SellerNotificationContextType {
   sellerNotifications: SellerNotification[];
   sellerUnreadCount: number;
   checkAndSetSellerNotifications: (
-      sellerPayments: SellerPayment[],
+      doctors: Doctor[],
       supportTickets: AdminSupportTicket[],
-      referredDoctors: Doctor[]
+      sellerPayments: SellerPayment[]
   ) => void;
   markSellerNotificationsAsRead: () => void;
 }

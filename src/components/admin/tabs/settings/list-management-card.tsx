@@ -10,13 +10,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { PlusCircle, Pencil, Trash2, Search, Filter, MoreHorizontal, Loader2, Smartphone, Monitor } from 'lucide-react';
+import { PlusCircle, Pencil, Trash2, Search, Loader2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from '@/lib/utils';
 
 type Item = {
     id: string;
-    [key: string]: any;
+    [key: string]: unknown;
 };
 
 interface ColumnDefinition {
@@ -39,8 +39,8 @@ interface ListManagementCardProps {
     description: string;
     listName: string;
     items: Item[];
-    onAddItem: (item: any) => Promise<void>;
-    onUpdateItem: (id: string, item: any) => Promise<void>;
+    onAddItem: (item: Record<string, unknown>) => Promise<void>;
+    onUpdateItem: (id: string, item: Record<string, unknown>) => Promise<void>;
     onDeleteItem: (id: string) => Promise<void>;
     columns: ColumnDefinition[];
     itemSchema: ItemSchema;
@@ -72,7 +72,7 @@ export function ListManagementCard({ title, description, items, onAddItem, onUpd
     setIsSaving(true);
     
     const formData = new FormData(e.currentTarget);
-    const newItemData: { [key: string]: any } = {};
+    const newItemData: { [key: string]: unknown } = {};
     
     for (const key in itemSchema) {
         const value = formData.get(key) as string;
@@ -89,7 +89,7 @@ export function ListManagementCard({ title, description, items, onAddItem, onUpd
         }
         setIsDialogOpen(false);
         setEditingItem(null);
-    } catch (error) {
+    } catch {
         toast({ variant: 'destructive', title: 'Error', description: `No se pudo guardar el/la ${itemNameSingular.toLowerCase()}.` });
     } finally {
         setIsSaving(false);
@@ -105,7 +105,7 @@ export function ListManagementCard({ title, description, items, onAddItem, onUpd
         toast({ title: `${itemNameSingular} eliminado(a)`, description: 'El elemento ha sido eliminado exitosamente.' });
         setIsDeleteDialogOpen(false);
         setItemToDelete(null);
-    } catch (error) {
+    } catch {
         toast({ variant: 'destructive', title: 'Error', description: `No se pudo eliminar el/la ${itemNameSingular.toLowerCase()}.` });
     } finally {
         setIsDeleting(false);
@@ -168,7 +168,7 @@ export function ListManagementCard({ title, description, items, onAddItem, onUpd
                           {col.isCurrency ? (
                             <span className="font-mono">${Number(item[col.key]).toFixed(2)}</span>
                           ) : (
-                            item[col.key]
+                            String(item[col.key] ?? "")
                           )}
                         </span>
                       </div>
@@ -236,7 +236,7 @@ export function ListManagementCard({ title, description, items, onAddItem, onUpd
                           {col.isCurrency ? (
                             <span className="font-mono">${Number(item[col.key]).toFixed(2)}</span>
                           ) : (
-                            item[col.key]
+                            String(item[col.key] ?? "")
                           )}
                         </TableCell>
                       ))}
@@ -299,7 +299,11 @@ export function ListManagementCard({ title, description, items, onAddItem, onUpd
                   name={key}
                   type={field.type}
                   placeholder={field.placeholder || field.label}
-                  defaultValue={editingItem?.[key] || ''}
+                  defaultValue={
+                    editingItem && typeof editingItem[key] !== 'object'
+                      ? String(editingItem[key] ?? "")
+                      : ""
+                  }
                   required={field.required}
                   className="h-10"
                 />

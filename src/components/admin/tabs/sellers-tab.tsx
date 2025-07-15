@@ -1,26 +1,20 @@
 
 "use client";
+import { z } from 'zod';
 import { useState, useCallback, useEffect, useMemo } from "react";
 import type { Seller, Doctor, SellerPayment, IncludedDoctorCommission, DoctorPayment } from "@/lib/types";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { useSettings } from "@/lib/settings";
+
 import * as firestoreService from '@/lib/firestoreService';
-import { UserPlus, Pencil, Trash2, Link as LinkIcon, Loader2, DollarSign, Eye, History, Upload, CheckCircle } from 'lucide-react';
-import { z } from 'zod';
-import { cn } from "@/lib/utils";
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-import Image from "next/image";
+import { Loader2 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 const SellerFormSchema = z.object({
@@ -34,11 +28,11 @@ const SellerFormSchema = z.object({
 export function SellersTab() {
   // HOOKS: todos juntos al inicio, en orden
   const { toast } = useToast();
-  const { cities } = useSettings();
+  // const { settings } = useSettings(); // Comentado porque no se usa actualmente
   const [activeTab, setActiveTab] = useState("pendientes");
   const [sellers, setSellers] = useState<Seller[]>([]);
-  const [doctors, setDoctors] = useState<Doctor[]>([]);
-  const [doctorPayments, setDoctorPayments] = useState<DoctorPayment[]>([]);
+  const [ , setDoctors] = useState<Doctor[]>([]);
+  const [ , setDoctorPayments] = useState<DoctorPayment[]>([]);
   const [sellerPayments, setSellerPayments] = useState<SellerPayment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSellerDialogOpen, setIsSellerDialogOpen] = useState(false);
@@ -46,7 +40,6 @@ export function SellersTab() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<Seller | null>(null);
   const [isPendingPaymentDialogOpen, setIsPendingPaymentDialogOpen] = useState(false);
-  const [selectedSellerForPayment, setSelectedSellerForPayment] = useState<Seller | null>(null);
   const [pendingPaymentData, setPendingPaymentData] = useState<{
     seller: Seller;
     pendingAmount: number;
@@ -57,10 +50,8 @@ export function SellersTab() {
   const [isPaymentHistoryDialogOpen, setIsPaymentHistoryDialogOpen] = useState(false);
   const [selectedSellerForHistory, setSelectedSellerForHistory] = useState<Seller | null>(null);
   const [sellerPaymentHistory, setSellerPaymentHistory] = useState<SellerPayment[]>([]);
-  const [isApprovePaymentDialogOpen, setIsApprovePaymentDialogOpen] = useState(false);
   const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-  const cityFeesMap = useMemo(() => new Map(cities.map(c => [c.name, c.subscriptionFee])), [cities]);
   // Agrupar pagos pendientes por vendedora
   const pendingPaymentsBySeller = useMemo(() => {
     const grouped: Record<string, SellerPayment[]> = {};
@@ -93,7 +84,7 @@ export function SellersTab() {
       setDoctors(docs);
       setDoctorPayments(docPayments);
       setSellerPayments(sellerPaymentsData);
-    } catch (error) {
+    } catch {
       toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron cargar los datos de las vendedoras.' });
     } finally {
       setIsLoading(false);
@@ -105,141 +96,17 @@ export function SellersTab() {
   }, [fetchData]);
 
   // Calcular comisión pendiente para cada vendedora
-  const calculatePendingCommission = useCallback((seller: Seller) => {
-    const now = new Date();
-    const currentPeriod = format(now, "LLLL yyyy", { locale: es });
-    
-    // Verificar si ya fue pagada este período
-    const hasBeenPaidThisPeriod = sellerPayments.some(p => 
-      p.sellerId === seller.id && 
-      p.period.toLowerCase() === currentPeriod.toLowerCase()
-    );
-    
-    if (hasBeenPaidThisPeriod) return 0;
-    
-    // Calcular comisión solo de médicos que han realizado pagos efectivos
-    const referredDoctors = doctors.filter(d => d.sellerId === seller.id && d.status === 'active');
-    
-    // Filtrar solo doctores que han pagado (tienen pagos aprobados)
-    const doctorsWithPayments = referredDoctors.filter(doc => {
-      // Buscar si el doctor tiene pagos aprobados
-      const hasPaidPayments = doctorPayments.some(payment => 
-        payment.doctorId === doc.id && 
-        payment.status === 'Paid'
-      );
-      return hasPaidPayments;
-    });
-    
-    return doctorsWithPayments.reduce((sum, doc) => {
-      const fee = cityFeesMap.get(doc.city) || 0;
-      return sum + (fee * seller.commissionRate);
-    }, 0);
-  }, [doctors, sellerPayments, cityFeesMap, doctorPayments]);
-
-  const openDeleteDialog = (seller: Seller) => {
-    setItemToDelete(seller);
-    setIsDeleteDialogOpen(true);
-  };
-
   const handleDeleteItem = async () => {
     if (!itemToDelete) return;
     try {
       await firestoreService.deleteSeller(itemToDelete.id);
       toast({ title: "Vendedora Eliminada" });
       fetchData();
-    } catch (error) {
+    } catch {
       toast({ variant: 'destructive', title: 'Error al eliminar', description: 'No se pudo completar la operación.' });
     } finally {
       setIsDeleteDialogOpen(false);
       setItemToDelete(null);
-    }
-  };
-
-  const handleViewPendingPayment = (seller: Seller) => {
-    const pendingAmount = calculatePendingCommission(seller);
-    const currentPeriod = format(new Date(), "LLLL yyyy", { locale: es });
-    
-    if (pendingAmount === 0) {
-      toast({ title: "Sin comisiones pendientes", description: "Esta vendedora no tiene comisiones pendientes para este período." });
-      return;
-    }
-
-    // Obtener solo doctores que han pagado efectivamente
-    const referredDoctors = doctors.filter(d => d.sellerId === seller.id && d.status === 'active');
-    const doctorsWithPayments = referredDoctors.filter(doc => {
-      const hasPaidPayments = doctorPayments.some(payment => 
-        payment.doctorId === doc.id && 
-        payment.status === 'Paid'
-      );
-      return hasPaidPayments;
-    });
-
-    const includedDoctors: IncludedDoctorCommission[] = doctorsWithPayments.map(doc => {
-      const fee = cityFeesMap.get(doc.city) || 0;
-      return {
-        id: doc.id,
-        name: doc.name,
-        commissionAmount: fee * seller.commissionRate
-      };
-    });
-
-    setPendingPaymentData({
-      seller,
-      pendingAmount,
-      includedDoctors,
-      period: currentPeriod,
-      transactionId: ""
-    });
-    setSelectedSellerForPayment(seller);
-    setIsPendingPaymentDialogOpen(true);
-  };
-
-  const handleViewPaymentHistory = async (seller: Seller) => {
-    setSelectedSellerForHistory(seller);
-    const history = sellerPayments.filter(p => p.sellerId === seller.id);
-    setSellerPaymentHistory(history);
-    setIsPaymentHistoryDialogOpen(true);
-  };
-
-  const handleApprovePayment = async () => {
-    if (!pendingPaymentData || !paymentProofFile) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Por favor, sube el comprobante de pago.' });
-      return;
-    }
-
-    setIsProcessingPayment(true);
-    try {
-      // Subir comprobante de pago
-      const fileName = `seller-payments/${pendingPaymentData.seller.id}/${Date.now()}-${paymentProofFile.name}`;
-      const proofUrl = await firestoreService.uploadImage(paymentProofFile, fileName);
-
-      // Crear el pago
-      await firestoreService.addSellerPayment({
-        sellerId: pendingPaymentData.seller.id,
-        paymentDate: new Date().toISOString().split('T')[0],
-        amount: pendingPaymentData.pendingAmount,
-        period: pendingPaymentData.period,
-        includedDoctors: pendingPaymentData.includedDoctors,
-        paymentProofUrl: proofUrl,
-        transactionId: `TXN-SUMA-${Date.now()}-${pendingPaymentData.seller.id}`,
-        status: "paid"
-      });
-
-      toast({ title: "Pago Aprobado", description: `Se ha procesado el pago de $${(pendingPaymentData.pendingAmount || 0).toFixed(2)} para ${pendingPaymentData.seller.name}.` });
-      
-      // Limpiar estados
-      setPaymentProofFile(null);
-      setIsPendingPaymentDialogOpen(false);
-      setSelectedSellerForPayment(null);
-      setPendingPaymentData(null);
-      
-      // Recargar datos
-      fetchData();
-    } catch (error) {
-      console.error('Error al procesar pago:', error);
-      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar el pago. Intenta de nuevo.' });
-    } finally {
-      setIsProcessingPayment(false);
     }
   };
 
@@ -275,8 +142,8 @@ export function SellersTab() {
       await fetchData();
     } catch (error: unknown) {
       let message = "No se pudo registrar el pago. Intenta de nuevo.";
-      if (error && typeof error === "object" && "message" in error && typeof (error as any).message === "string") {
-        message = (error as any).message;
+      if (error && typeof error === "object" && "message" in error && typeof (error as { message: string }).message === "string") {
+        message = (error as { message: string }).message;
       }
       toast({
         title: "Error",
@@ -424,7 +291,7 @@ export function SellersTab() {
                           });
                           setIsPendingPaymentDialogOpen(true);
                         }} disabled={!tienePendientes}>
-                          {isProcessingPayment && selectedSellerForPayment?.id === seller.id ? (
+                          {isProcessingPayment && seller.id === pendingPaymentData?.seller.id ? (
                             <>
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                               Procesando...

@@ -32,7 +32,7 @@ function DashboardLoading() {
 function AdminDashboardPage() {
   const searchParams = useSearchParams();
   const currentTab = searchParams.get('view') || 'overview';
-  const { user, loading } = useAuth();
+  const { } = useAuth();
 
   return <AdminDashboardClient currentTab={currentTab} />;
 }

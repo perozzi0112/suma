@@ -63,7 +63,7 @@ export default function LoginPage() {
     
     try {
       await login(email, password);
-    } catch (error) {
+    } catch {
        toast({ variant: 'destructive', title: 'Error', description: "Ocurrió un error inesperado." });
     } finally {
       setIsLoading(false);

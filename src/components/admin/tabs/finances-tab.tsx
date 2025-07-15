@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,26 +13,26 @@ import {
   Wallet, 
   FileDown, 
   Loader2,
-  DollarSign,
   CreditCard,
   Users,
   Calendar,
   Eye,
   CheckCircle,
   XCircle,
-  Building2,
   Clock,
   AlertCircle
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import * as firestoreService from "@/lib/firestoreService";
-import type { DoctorPayment, SellerPayment, Doctor, Seller } from "@/lib/types";
+import type { DoctorPayment, Doctor } from "@/lib/types";
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Image from 'next/image';
+import { useSettings } from "@/lib/settings";
 
 export function FinancesTab() {
   const { toast } = useToast();
+  const { settings } = useSettings();
   const [isLoading, setIsLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month' | 'year' | 'all'>('month');
   const [pendingPayments, setPendingPayments] = useState<DoctorPayment[]>([]);
@@ -56,19 +56,13 @@ export function FinancesTab() {
     all: 'Global'
   };
 
-  useEffect(() => {
-    loadFinancialData();
-  }, [timeRange]);
-
-  const loadFinancialData = async () => {
+  const loadFinancialData = useCallback(async () => {
     setIsLoading(true);
     try {
       // Obtener datos reales de la base de datos
-      const [doctorPayments, sellerPayments, doctors, sellers] = await Promise.all([
+      const [doctorPayments, doctors] = await Promise.all([
         firestoreService.getDoctorPayments(),
-        firestoreService.getSellerPayments(),
-            firestoreService.getDoctors(),
-        firestoreService.getSellers()
+            firestoreService.getDoctors()
       ]);
 
       // Filtrar pagos pendientes
@@ -98,8 +92,8 @@ export function FinancesTab() {
         monthlyGrowth: 0 // Por ahora en 0 ya que no hay datos históricos
       });
 
-    } catch (error) {
-      console.error('Error cargando datos financieros:', error);
+    } catch {
+      console.error('Error cargando datos financieros');
       toast({
         title: "Error",
         description: "No se pudieron cargar los datos financieros.",
@@ -108,7 +102,11 @@ export function FinancesTab() {
     } finally {
         setIsLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    loadFinancialData();
+  }, [timeRange, loadFinancialData]);
 
   const handleDownloadReport = async () => {
     setIsLoading(true);
@@ -118,7 +116,7 @@ export function FinancesTab() {
         title: "Reporte descargado",
         description: "El reporte financiero se ha descargado correctamente.",
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "No se pudo descargar el reporte.",
@@ -230,7 +228,7 @@ export function FinancesTab() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Select value={timeRange} onValueChange={(value: any) => setTimeRange(value)}>
+          <Select value={timeRange} onValueChange={(value: 'today' | 'week' | 'month' | 'year' | 'all') => setTimeRange(value)}>
             <SelectTrigger className="w-40">
               <SelectValue />
             </SelectTrigger>
@@ -328,7 +326,7 @@ export function FinancesTab() {
           <CardContent>
             <div className="text-2xl font-bold">Mensual</div>
             <p className="text-xs text-muted-foreground">
-              Próximo: 15 de cada mes
+              Próximo: {settings?.billingCycleStartDay || 1} al {settings?.billingCycleEndDay || 6} de cada mes
             </p>
           </CardContent>
         </Card>

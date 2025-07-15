@@ -2,35 +2,49 @@ import { NextRequest, NextResponse } from 'next/server';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
-// Inicializar Firebase Admin si no está inicializado y las variables están disponibles
-if (!getApps().length) {
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+// Función para inicializar Firebase Admin solo cuando sea necesario
+function initializeFirebaseAdmin() {
+  if (!getApps().length) {
+    const projectId = process.env.FIREBASE_PROJECT_ID;
+    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+    const privateKey = process.env.FIREBASE_PRIVATE_KEY;
 
-  if (projectId && clientEmail && privateKey) {
-    try {
-      initializeApp({
-        credential: cert({
-          projectId,
-          clientEmail,
-          privateKey: privateKey.replace(/\\n/g, '\n'),
-        }),
-      });
-    } catch (error) {
-      console.error('Error inicializando Firebase Admin:', error);
+    if (projectId && clientEmail && privateKey) {
+      try {
+        initializeApp({
+          credential: cert({
+            projectId,
+            clientEmail,
+            privateKey: privateKey.replace(/\\n/g, '\n'),
+          }),
+        });
+        return true;
+      } catch (error) {
+        console.error('Error inicializando Firebase Admin:', error);
+        return false;
+      }
+    } else {
+      console.warn('Firebase Admin no inicializado: variables de entorno faltantes');
+      return false;
     }
-  } else {
-    console.warn('Firebase Admin no inicializado: variables de entorno faltantes');
   }
+  return true;
 }
 
-const db = getFirestore();
+// Función para obtener Firestore de forma segura
+function getFirestoreSafely() {
+  if (initializeFirebaseAdmin()) {
+    return getFirestore();
+  }
+  return null;
+}
 
 export async function POST(request: NextRequest) {
   try {
+    const db = getFirestoreSafely();
+    
     // Verificar que Firebase Admin esté inicializado
-    if (getApps().length === 0) {
+    if (!db) {
       return NextResponse.json(
         { error: 'Firebase Admin no está configurado' },
         { status: 500 }

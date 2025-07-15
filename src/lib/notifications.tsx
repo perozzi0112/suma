@@ -3,8 +3,7 @@
 
 import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
 import type { Appointment, PatientNotification } from './types';
-import { differenceInHours, formatDistanceToNow } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { differenceInHours } from 'date-fns';
 import { useAuth } from './auth';
 import { batchUpdatePatientAppointmentsAsRead } from './firestoreService';
 import { getCurrentDateTimeInVenezuela } from './utils';

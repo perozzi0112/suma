@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { useSellerNotifications } from '@/lib/seller-notifications';
@@ -8,8 +8,8 @@ import { HeaderWrapper } from '@/components/header';
 import * as firestoreService from '@/lib/firestoreService';
 import type { Doctor, SellerPayment, MarketingMaterial, AdminSupportTicket, Seller } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { } from 'lucide-react';
+import { } from "@/components/ui/tabs";
 import { ReferralsTab } from './tabs/referrals-tab';
 import { FinancesTab } from './tabs/finances-tab';
 import { AccountsTab } from './tabs/accounts-tab';
@@ -52,10 +52,6 @@ export function SellerDashboardClient({ currentTab }: { currentTab: string }) {
   const [sellerPayments, setSellerPayments] = useState<SellerPayment[]>([]);
   const [marketingMaterials, setMarketingMaterials] = useState<MarketingMaterial[]>([]);
   const [supportTickets, setSupportTickets] = useState<AdminSupportTicket[]>([]);
-
-  const handleTabChange = (value: string) => {
-    router.push(`/seller/dashboard?view=${value}`);
-  };
 
   const fetchData = useCallback(async () => {
     if (!user || user.role !== 'seller' || !user.id) return;
@@ -104,14 +100,6 @@ export function SellerDashboardClient({ currentTab }: { currentTab: string }) {
     }
   }, [user, loading, router]);
   
-  const tabs = useMemo(() => [
-    { value: "referrals", label: "Mis Referidos" },
-    { value: "finances", label: "Finanzas" },
-    { value: "accounts", label: "Cuentas" },
-    { value: "marketing", label: "Marketing" },
-    { value: "support", label: "Soporte" },
-  ], []);
-
   if (loading || isLoading || !user || !sellerData) {
     return <DashboardLoading />;
   }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useSettings } from '@/lib/settings';
+import type { City } from '@/lib/types';
 import { GeneralSettingsCard } from './settings/general-settings-card';
 import { ListManagementCard } from './settings/list-management-card';
 import { CouponManagementCard } from './settings/coupon-management-card';
@@ -233,8 +234,8 @@ export function SettingsTab() {
             description="Gestiona las ciudades donde opera SUMA y sus tarifas de suscripción."
             listName="cities"
             items={cities.map(c => ({ id: c.name, ...c }))}
-            onAddItem={(item) => addListItem('cities', item)}
-            onUpdateItem={(id, item) => updateListItem('cities', id, item)}
+            onAddItem={(item) => addListItem('cities', item as City)}
+            onUpdateItem={(id, item) => updateListItem('cities', id, item as City)}
             onDeleteItem={(id) => deleteListItem('cities', id)}
             columns={[
                 { header: 'Ciudad', key: 'name' },
@@ -254,8 +255,8 @@ export function SettingsTab() {
             description="Gestiona las especialidades médicas disponibles en la plataforma."
             listName="specialties"
             items={specialties.map(s => ({ id: s, name: s }))}
-            onAddItem={(item) => addListItem('specialties', item.name)}
-            onUpdateItem={(id, item) => updateListItem('specialties', id, item.name)}
+            onAddItem={(item) => addListItem('specialties', (item as { name: string }).name)}
+            onUpdateItem={(id, item) => updateListItem('specialties', id, (item as { name: string }).name)}
             onDeleteItem={(id) => deleteListItem('specialties', id)}
             columns={[ { header: 'Nombre', key: 'name' } ]}
             itemSchema={{ name: { label: 'Nombre de la Especialidad', type: 'text' } }}

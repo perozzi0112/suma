@@ -11,21 +11,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 import { 
   User, 
   Phone, 
   MapPin, 
   Calendar, 
-  CreditCard, 
-  Camera,
   CheckCircle,
   ArrowRight,
   Sparkles
 } from 'lucide-react';
 import { useSettings } from '@/lib/settings';
-import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 
 interface WelcomeModalProps {

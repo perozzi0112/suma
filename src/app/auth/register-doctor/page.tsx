@@ -88,7 +88,7 @@ export default function RegisterDoctorPage() {
     
     try {
       await registerDoctor(result.data);
-    } catch (error) {
+    } catch {
        toast({ variant: 'destructive', title: 'Error', description: "Ocurrió un error inesperado durante el registro." });
     } finally {
       setIsLoading(false);

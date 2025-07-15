@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
 import type { AdminNotification } from './types';
 import { useAuth } from './auth';
-import { getCurrentDateTimeInVenezuela } from './utils';
+
 
 interface AdminNotificationContextType {
   adminNotifications: AdminNotification[];
@@ -98,14 +98,7 @@ export function AdminNotificationProvider({ children }: { children: ReactNode })
     };
   }, [user, checkAndSetAdminNotifications]);
 
-  const sendNotification = async (adminId: string, notification: Omit<AdminNotification, 'id' | 'timestamp'>) => {
-    const now = getCurrentDateTimeInVenezuela();
-    const newNotification: AdminNotification = {
-      ...notification,
-      id: `notification-${Date.now()}`,
-      timestamp: now.toISOString(),
-    };
-  };
+
 
   const value = { adminNotifications, adminUnreadCount, checkAndSetAdminNotifications, markAdminNotificationsAsRead };
 

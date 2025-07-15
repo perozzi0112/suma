@@ -9,11 +9,11 @@ import { useAdminNotifications } from '@/lib/admin-notifications';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Bell, CheckCircle, AlertCircle } from 'lucide-react';
+import { AlertCircle, Bell, CheckCircle } from 'lucide-react';
 
 export function NotificationTest() {
   const { user } = useAuth();
-  const [testResults, setTestResults] = useState<any>({});
+  const [testResults, setTestResults] = useState<Record<string, unknown>>({});
 
   // Hooks de notificaciones
   const patientNotifications = useNotifications();
@@ -24,7 +24,7 @@ export function NotificationTest() {
   useEffect(() => {
     if (!user) return;
 
-    const results: any = {
+    const results: Record<string, unknown> = {
       userRole: user.role,
       userId: user.id,
       timestamp: new Date().toISOString(),
@@ -129,22 +129,22 @@ export function NotificationTest() {
           <div className="space-y-2">
             <p className="text-sm font-medium">Total de Notificaciones:</p>
             <Badge variant="outline" className="text-lg">
-              {testResults.notifications?.count || 0}
+              {(testResults.notifications as { count?: number })?.count || 0}
             </Badge>
           </div>
           <div className="space-y-2">
             <p className="text-sm font-medium">No Leídas:</p>
-            <Badge variant={testResults.notifications?.unreadCount > 0 ? "destructive" : "outline"} className="text-lg">
-              {testResults.notifications?.unreadCount || 0}
+            <Badge variant={((testResults.notifications as { unreadCount?: number })?.unreadCount || 0) > 0 ? "destructive" : "outline"} className="text-lg">
+              {(testResults.notifications as { unreadCount?: number })?.unreadCount || 0}
             </Badge>
           </div>
         </div>
 
-        {testResults.notifications?.types && testResults.notifications.types.length > 0 && (
+        {(testResults.notifications as { types?: string[] })?.types && ((testResults.notifications as { types?: string[] }).types?.length || 0) > 0 && (
           <div className="space-y-2">
             <p className="text-sm font-medium">Tipos de Notificaciones:</p>
             <div className="flex flex-wrap gap-1">
-              {testResults.notifications.types.map((type: string, index: number) => (
+              {(testResults.notifications as { types?: string[] }).types?.map((type: string, index: number) => (
                 <Badge key={index} variant="secondary" className="text-xs">
                   {type}
                 </Badge>
@@ -153,17 +153,17 @@ export function NotificationTest() {
           </div>
         )}
 
-        {testResults.notifications?.latest && (
+        {(testResults.notifications as { latest?: { title: string; description: string; date: string } })?.latest && (
           <div className="space-y-2">
             <p className="text-sm font-medium">Notificación Más Reciente:</p>
             <Card className="bg-muted/50">
               <CardContent className="p-3">
-                <p className="font-medium text-sm">{testResults.notifications.latest.title}</p>
+                <p className="font-medium text-sm">{(testResults.notifications as { latest?: { title: string; description: string; date: string } }).latest?.title}</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {testResults.notifications.latest.description}
+                  {(testResults.notifications as { latest?: { title: string; description: string; date: string } }).latest?.description}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {new Date(testResults.notifications.latest.date).toLocaleString('es-VE')}
+                  {new Date((testResults.notifications as { latest?: { title: string; description: string; date: string } }).latest?.date || '').toLocaleString('es-VE')}
                 </p>
               </CardContent>
             </Card>
@@ -173,7 +173,7 @@ export function NotificationTest() {
         <div className="flex gap-2">
           <Button 
             onClick={handleMarkAsRead}
-            disabled={!testResults.notifications?.unreadCount}
+            disabled={!(testResults.notifications as { unreadCount?: number })?.unreadCount}
             size="sm"
           >
             <CheckCircle className="h-4 w-4 mr-2" />
@@ -182,9 +182,9 @@ export function NotificationTest() {
         </div>
 
         <div className="text-xs text-muted-foreground">
-          <p><strong>Usuario ID:</strong> {testResults.userId}</p>
-          <p><strong>Rol:</strong> {testResults.userRole}</p>
-          <p><strong>Última actualización:</strong> {new Date(testResults.timestamp).toLocaleString('es-VE')}</p>
+          <p><strong>Usuario ID:</strong> {testResults.userId as string}</p>
+          <p><strong>Rol:</strong> {testResults.userRole as string}</p>
+          <p><strong>Última actualización:</strong> {new Date(testResults.timestamp as string).toLocaleString('es-VE')}</p>
         </div>
       </CardContent>
     </Card>

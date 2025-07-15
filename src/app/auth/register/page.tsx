@@ -61,7 +61,7 @@ export default function RegisterPage() {
     
     try {
       await register(fullName, email, password);
-    } catch (error) {
+    } catch {
        toast({ variant: 'destructive', title: 'Error', description: "Ocurrió un error inesperado durante el registro." });
     } finally {
       setIsLoading(false);

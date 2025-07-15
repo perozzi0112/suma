@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PlusCircle, Eye, Search, Filter, MessageCircle, Clock, CheckCircle, AlertCircle, Info, Calendar, User } from 'lucide-react';
+import { PlusCircle, Eye, Search, Filter, MessageCircle, Clock, CheckCircle, AlertCircle, Info, Calendar } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -28,7 +28,7 @@ export function SupportTab({ supportTickets, onOpenTicketDialog, onViewTicket, o
 
   // Filtrar y ordenar tickets
   const filteredAndSortedTickets = useMemo(() => {
-    let filtered = supportTickets.filter(ticket => {
+    const filtered = supportTickets.filter(ticket => {
       const matchesSearch = ticket.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            ticket.description.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === "all" || ticket.status === statusFilter;

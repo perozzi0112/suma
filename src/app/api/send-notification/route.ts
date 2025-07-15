@@ -4,8 +4,8 @@ import { getMessaging } from 'firebase-admin/messaging';
 import { getFirestore } from 'firebase-admin/firestore';
 
 // Inicializar Firebase Admin si no está inicializado y las credenciales están disponibles
-let messaging: any = null;
-let db: any = null;
+let messaging: ReturnType<typeof getMessaging> | null = null;
+let db: ReturnType<typeof getFirestore> | null = null;
 
 if (!getApps().length) {
   const projectId = process.env.FIREBASE_PROJECT_ID;

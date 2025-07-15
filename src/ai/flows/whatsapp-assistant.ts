@@ -30,7 +30,7 @@ const findDoctorsTool = ai.defineTool(
     })),
   },
   async ({ specialty, location }) => {
-    let doctors = await firestoreService.getDoctors();
+    const doctors = await firestoreService.getDoctors();
     let filteredDoctors = doctors.filter(doc => doc.status === 'active');
     
     if (specialty) {

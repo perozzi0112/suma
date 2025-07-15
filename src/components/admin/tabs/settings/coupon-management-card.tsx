@@ -11,12 +11,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusCircle, Pencil, Trash2, Loader2, CreditCard, Percent, DollarSign, Users, User, Stethoscope, MapPin, Building2, Globe } from 'lucide-react';
+import { PlusCircle, Pencil, Trash2, Loader2, CreditCard, Percent, DollarSign, Users, User, Stethoscope, MapPin, Globe } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import { cn } from '@/lib/utils';
 import { getDoctors, getSettings } from '@/lib/firestoreService';
 import { getCurrentDateTimeInVenezuela } from '@/lib/utils';
 
@@ -158,7 +156,7 @@ export function CouponManagementCard({ coupons, onAddCoupon, onUpdateCoupon, onD
         }
 
         try {
-            const couponData: any = {
+            const couponData: Record<string, unknown> = {
                 code: data.code.trim().toUpperCase(),
                 description: `Cupón ${data.code.trim().toUpperCase()}`,
                 discountType: data.discountType,
@@ -183,10 +181,10 @@ export function CouponManagementCard({ coupons, onAddCoupon, onUpdateCoupon, onD
             }
 
             if (editingCoupon) {
-                await onUpdateCoupon(editingCoupon.id, { ...couponData, id: editingCoupon.id });
+                await onUpdateCoupon(editingCoupon.id, { ...couponData, id: editingCoupon.id } as Coupon);
                 toast({ title: 'Cupón actualizado', description: 'Los cambios han sido guardados exitosamente.' });
             } else {
-                await onAddCoupon(couponData);
+                await onAddCoupon(couponData as Omit<Coupon, "id">);
                 toast({ title: 'Cupón añadido', description: 'El cupón ha sido creado exitosamente.' });
             }
             setIsDialogOpen(false);
@@ -208,7 +206,7 @@ export function CouponManagementCard({ coupons, onAddCoupon, onUpdateCoupon, onD
             toast({ title: 'Cupón eliminado', description: 'El cupón ha sido eliminado exitosamente.' });
             setIsDeleteDialogOpen(false);
             setItemToDelete(null);
-        } catch (error) {
+        } catch {
             toast({ variant: 'destructive', title: 'Error', description: 'No se pudo eliminar el cupón.' });
         } finally {
             setIsDeleting(false);
@@ -221,21 +219,6 @@ export function CouponManagementCard({ coupons, onAddCoupon, onUpdateCoupon, onD
 
     const getDiscountLabel = (type: 'fixed' | 'percentage') => {
         return type === 'fixed' ? 'Monto Fijo' : 'Porcentaje';
-    };
-
-    const getScopeDisplay = (scope: string) => {
-        if (scope === 'general') {
-            return 'Todos los médicos';
-        } else if (scope.startsWith('specialty:')) {
-            const specialty = scope.replace('specialty:', '');
-            return `Especialidad: ${specialty}`;
-        } else if (scope.startsWith('city:')) {
-            const city = scope.replace('city:', '');
-            return `Ciudad: ${city}`;
-        } else {
-            const doctor = doctors.find(d => d.id === scope);
-            return doctor ? `Dr. ${doctor.name}` : scope;
-        }
     };
 
     // Cambiar getScopeIcon para que reciba el objeto coupon

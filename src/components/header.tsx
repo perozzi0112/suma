@@ -22,10 +22,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { usePathname } from "next/navigation";
+import Link from "next/link";
+import { formatDistanceToNow, parseISO } from "date-fns";
+import { es } from "date-fns/locale";
+import { cn } from "@/lib/utils";
+import { type AdminNotification, type DoctorNotification, type PatientNotification, type SellerNotification } from "@/lib/types";
+
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Sheet,
@@ -45,39 +49,20 @@ import {
   LifeBuoy,
   LogOut,
   MessageSquare,
-  Settings,
   Stethoscope,
   Ticket,
   UserPlus,
   XCircle,
-  Calendar,
-  Users,
-  TrendingUp,
-  FileText,
-  HelpCircle,
-  Palette,
-  MapPin,
-  Clock,
-  CreditCard as CreditCardIcon,
-  MessageCircle,
   Heart,
   User,
   Home,
   Search,
   Bot,
-  Star,
-  StarOff,
   LayoutDashboard,
   LogIn,
   Menu,
-} from "lucide-react";
-import { usePathname, useSearchParams } from "next/navigation";
-import Link from "next/link";
-import { formatDistanceToNow, parseISO } from "date-fns";
-import { es } from "date-fns/locale";
-import { cn } from "@/lib/utils";
-import { type AdminNotification, type DoctorNotification, type PatientNotification, type SellerNotification } from "@/lib/types";
-import { clearOtherUsersNotifications } from '@/lib/clear-notifications';
+
+} from 'lucide-react';
 
 
 export function Header() {
@@ -87,15 +72,6 @@ export function Header() {
   const { sellerNotifications, sellerUnreadCount, markSellerNotificationsAsRead } = useSellerNotifications();
   const { unreadChatCount } = useChatNotifications();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  const clearNotifications = () => {
-    if (user?.id && user.role && user.role !== 'admin') {
-      clearOtherUsersNotifications(user.id, user.role);
-      // Recargar la página para limpiar las notificaciones en memoria
-      window.location.reload();
-    }
-  };
 
   const [adminNotifications, setAdminNotifications] = useState<AdminNotification[]>([]);
   const [adminUnreadCount, setAdminUnreadCount] = useState(0);

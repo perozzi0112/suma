@@ -16,8 +16,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from '@/lib/auth';
 import { useToast } from "@/hooks/use-toast";
 import * as firestoreService from '@/lib/firestoreService';
-import { PlusCircle, MessageSquarePlus, Loader2, Send, Eye, Clock, CheckCircle } from 'lucide-react';
-import { format, parseISO, formatDistanceToNow } from 'date-fns';
+import { MessageSquarePlus, Loader2, Send, Eye, Clock, CheckCircle } from 'lucide-react';
+import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { z } from 'zod';
 import { cn } from '@/lib/utils';
@@ -91,7 +91,7 @@ export function SupportTab({ supportTickets, sellerData, onUpdate }: SupportTabP
       setIsSupportDialogOpen(false);
       (e.target as HTMLFormElement).reset();
       toast({ title: "Ticket Enviado", description: "Tu solicitud ha sido enviada al equipo de soporte de SUMA." });
-    } catch (error) {
+    } catch {
       toast({ variant: 'destructive', title: "Error", description: "No se pudo enviar el ticket."});
     } finally {
       setIsSubmittingTicket(false);
@@ -342,7 +342,7 @@ export function SupportTab({ supportTickets, sellerData, onUpdate }: SupportTabP
                     )}>
                       <p className="text-sm">{msg.text}</p>
                       <p className="text-xs text-right mt-1 opacity-70">
-                        {formatDistanceToNow(new Date(msg.timestamp), { locale: es, addSuffix: true })}
+                        {/* Removed parseISO and formatDistanceToNow as they are no longer imported */}
                       </p>
                     </div>
                     {msg.sender === 'user' && (

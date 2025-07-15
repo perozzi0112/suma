@@ -143,7 +143,7 @@ export default function ProfilePage() {
         title: 'Foto de perfil actualizada',
         description: 'Tu foto de perfil ha sido guardada correctamente.',
       });
-    } catch (error) {
+    } catch {
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -398,7 +398,7 @@ export default function ProfilePage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="gender">Sexo</Label>
-                    <Select value={gender} onValueChange={(value) => setGender(value as any)}>
+                    <Select value={gender} onValueChange={(value) => setGender(value as 'masculino' | 'femenino' | 'otro')}>
                       <SelectTrigger id="gender">
                         <SelectValue placeholder="Selecciona tu sexo" />
                       </SelectTrigger>
@@ -413,7 +413,7 @@ export default function ProfilePage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="city">Ciudad Predeterminada</Label>
-                  <Select value={city} onValueChange={(value) => setCity(value as any)}>
+                  <Select value={city} onValueChange={(value) => setCity(value as string)}>
                     <SelectTrigger id="city">
                       <SelectValue placeholder="Selecciona tu ciudad para búsquedas" />
                     </SelectTrigger>
@@ -470,7 +470,6 @@ export default function ProfilePage() {
             <h3 className="text-lg font-semibold">Notificaciones</h3>
             <NotificationSettings 
               userId={user?.id || ''} 
-              userRole={user?.role || 'patient'} 
             />
           </div>
 

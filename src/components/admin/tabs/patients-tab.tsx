@@ -50,7 +50,7 @@ export function PatientsTab() {
       ]);
       setPatients(pats);
       setAppointments(apps);
-    } catch (error) {
+    } catch {
       toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron cargar los datos de los pacientes.' });
     } finally {
       setIsLoading(false);
@@ -72,7 +72,7 @@ export function PatientsTab() {
       await firestoreService.deletePatient(itemToDelete.id);
       toast({ title: "Paciente Eliminado" });
       fetchData();
-    } catch (error) {
+    } catch {
       toast({ variant: 'destructive', title: 'Error al eliminar', description: 'No se pudo completar la operación.' });
     } finally {
       setIsDeleteDialogOpen(false);

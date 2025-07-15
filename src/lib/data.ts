@@ -1,5 +1,11 @@
 
-import type { City, Doctor, Seller, Patient, Appointment, Expense, SellerPayment, MarketingMaterial, AdminSupportTicket, DoctorPayment, AppSettings } from './types';
+import type { City, Doctor, Seller, Patient, Appointment, SellerPayment, MarketingMaterial, AdminSupportTicket, DoctorPayment, AppSettings } from './types';
+import { Timestamp } from 'firebase/firestore';
+
+// Helper para crear timestamps de Firestore para datos mock
+const createFirestoreTimestamp = (date: Date): Timestamp => {
+  return new Timestamp(Math.floor(date.getTime() / 1000), 0);
+};
 
 export const specialties = [
   "Cardiología",
@@ -39,8 +45,37 @@ const mockCompanyBankDetails: AppSettings['companyBankDetails'] = [
 ];
 
 const mockCoupons: AppSettings['coupons'] = [
-  { id: 'coupon1', code: 'SUMA10', discountType: 'fixed', value: 10, scope: 'general' },
-  { id: 'coupon2', code: 'VERANO20', discountType: 'percentage', value: 20, scope: '1' } // Dr. Ana Rodriguez
+  { 
+    id: 'coupon1', 
+    code: 'SUMA10', 
+    description: 'Descuento de $10 en tu primera consulta',
+    discountType: 'fixed', 
+    discountValue: 10, 
+    validFrom: createFirestoreTimestamp(new Date()),
+    validTo: createFirestoreTimestamp(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)),
+    isActive: true,
+    createdAt: createFirestoreTimestamp(new Date()),
+    updatedAt: createFirestoreTimestamp(new Date()),
+    scopeType: 'all',
+    scope: 'general',
+    value: 10
+  },
+  { 
+    id: 'coupon2', 
+    code: 'VERANO20', 
+    description: '20% de descuento en consultas de verano',
+    discountType: 'percentage', 
+    discountValue: 20, 
+    validFrom: createFirestoreTimestamp(new Date()),
+    validTo: createFirestoreTimestamp(new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)),
+    isActive: true,
+    createdAt: createFirestoreTimestamp(new Date()),
+    updatedAt: createFirestoreTimestamp(new Date()),
+    scopeType: 'specific',
+    scopeDoctors: ['1'],
+    scope: '1',
+    value: 20
+  }
 ];
 
 const defaultSchedule: Doctor['schedule'] = {
@@ -134,7 +169,22 @@ export const doctors: Doctor[] = [
       { id: 'exp2', date: '2024-05-10', description: 'Materiales médicos', amount: 150 },
     ],
     coupons: [
-      { id: 'coupondoc1', code: 'ANAFIRST', discountType: 'percentage', value: 15, scope: '1' }
+      { 
+        id: 'coupondoc1', 
+        code: 'ANAFIRST', 
+        description: '15% de descuento en tu primera consulta',
+        discountType: 'percentage', 
+        discountValue: 15, 
+        validFrom: createFirestoreTimestamp(new Date()),
+        validTo: createFirestoreTimestamp(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)),
+        isActive: true,
+        createdAt: createFirestoreTimestamp(new Date()),
+        updatedAt: createFirestoreTimestamp(new Date()),
+        scopeType: 'specific',
+        scopeDoctors: ['1'],
+        scope: '1',
+        value: 15
+      }
     ],
     slotDuration: 30,
     consultationFee: 20,
