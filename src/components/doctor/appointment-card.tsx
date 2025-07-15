@@ -10,6 +10,10 @@ import { cn } from "@/lib/utils";
 import { format, parseISO, addHours } from 'date-fns';
 import { es } from 'date-fns/locale';
 
+function capitalizeWords(str: string) {
+  return str.replace(/\b\w+/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+}
+
 export function DoctorAppointmentCard({ appointment, onOpenDialog, isPast = false }: { appointment: Appointment, onOpenDialog: (type: 'appointment' | 'chat', appointment: Appointment) => void, isPast?: boolean }) {
     // Función para obtener el texto del estado de pago
     const getPaymentStatusText = (status: string) => {
@@ -39,7 +43,7 @@ export function DoctorAppointmentCard({ appointment, onOpenDialog, isPast = fals
         <Card className="hover:shadow-md transition-shadow">
           <CardContent className="p-4 flex flex-col sm:flex-row gap-4">
             <div className="flex-1 space-y-2">
-                <p className="font-bold text-lg">{appointment.patientName}</p>
+                <p className="font-bold text-lg">{capitalizeWords(appointment.patientName)}</p>
                 <div className="flex items-center text-sm gap-4 pt-1 text-muted-foreground">
                     <span className="flex items-center gap-1.5"><CalendarDays className="h-4 w-4" /> {format(addHours(parseISO(appointment.date), 5), 'dd MMM yyyy', {locale: es})}</span>
                     <span className="flex items-center gap-1.5"><Clock className="h-4 w-4" /> {appointment.time}</span>

@@ -61,6 +61,7 @@ import { useSettings } from "@/lib/settings";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { doctors as mockDoctors } from "@/lib/data";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 
 const specialtyIcons: Record<string, React.ElementType> = {
   Cardiología: HeartPulse,
@@ -217,7 +218,7 @@ export default function FindDoctorPage() {
         6: 'saturday'
       };
       
-      const dayKey = dayKeyMapping[dayOfWeek];
+      const dayKey = dayKeyMapping[dayOfWeek] as keyof Doctor['schedule'];
       results = results.filter((d) => {
         const daySchedule = d.schedule[dayKey];
         return daySchedule.active && daySchedule.slots.length > 0;
@@ -268,25 +269,25 @@ export default function FindDoctorPage() {
       <main className="flex-1 pb-20 md:pb-0">
         {/* Header simplificado */}
         <div className="bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5 border-b">
-          <div className="container py-6 md:py-8">
-            <div className="text-center mb-6">
-              <h1 className="text-2xl md:text-4xl font-bold font-headline mb-2">
-              Encuentra a Tu Especialista
-            </h1>
-              <p className="text-muted-foreground text-sm md:text-lg max-w-2xl mx-auto">
+          <div className="container py-4 md:py-8">
+            <div className="text-center mb-4 md:mb-6">
+              <h1 className="text-xl md:text-4xl font-bold font-headline mb-1 md:mb-2">
+                Encuentra a Tu Especialista
+              </h1>
+              <p className="text-muted-foreground text-xs md:text-lg max-w-2xl mx-auto">
                 Conectamos pacientes con los mejores médicos especialistas.
               </p>
             </div>
 
             {/* Búsqueda rápida */}
-            <div className="max-w-2xl mx-auto mb-6">
+            <div className="max-w-2xl mx-auto mb-4 md:mb-6">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Buscar médico, especialidad o ciudad..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 h-11 md:h-12 text-base"
+                  className="pl-10 pr-4 h-10 md:h-12 text-sm md:text-base"
                 />
                 {searchTerm !== debouncedSearchTerm && (
                   <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -296,173 +297,327 @@ export default function FindDoctorPage() {
               </div>
             </div>
 
-            {/* Filtros principales siempre visibles */}
+            {/* Filtros principales colapsables en móvil */}
             <div className="space-y-4">
-              {/* Filtros rápidos */}
-              <div className="bg-card border rounded-lg p-4 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-base">Filtros Rápidos</h3>
-                  {hasActiveFilters && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={clearFilters}
-                      className="text-muted-foreground hover:text-foreground text-xs"
-                    >
-                      <X className="h-3 w-3 mr-1" />
-                      Limpiar
-                    </Button>
-                  )}
-                </div>
-                
-                {/* Filtros principales en grid responsivo */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {/* Ciudad */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                      <MapPin className="h-3 w-3" />
-                      Ciudad
-                    </label>
-                    <Select value={location} onValueChange={setLocation}>
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue placeholder="Todas las ciudades" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todas las ciudades</SelectItem>
-                        {cities.map((city) => (
-                          <SelectItem key={city.name} value={city.name}>
-                            {city.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Fecha */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                      <CalendarIcon className="h-3 w-3" />
-                      Fecha
-                    </label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal h-9 text-sm",
-                            !date && "text-muted-foreground"
+              <div className="md:hidden">
+                <Accordion type="single" collapsible>
+                  <AccordionItem value="filters">
+                    <AccordionTrigger className="text-base font-semibold px-2 py-2">
+                      <span className="flex items-center gap-2">
+                        <Filter className="h-4 w-4" />
+                        Filtros de búsqueda
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent className="p-0">
+                      {/* Filtros rápidos y avanzados (móvil) */}
+                      <div className="bg-card border rounded-lg p-3 space-y-4">
+                        {/* Filtros rápidos */}
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-semibold text-sm">Filtros Rápidos</h3>
+                          {hasActiveFilters && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={clearFilters}
+                              className="text-muted-foreground hover:text-foreground text-xs"
+                            >
+                              <X className="h-3 w-3 mr-1" />
+                              Limpiar
+                            </Button>
                           )}
-                        >
-                          <CalendarIcon className="mr-2 h-3 w-3" />
-                          {date ? (
-                            format(date, "dd/MM", { locale: es })
-                          ) : (
-                            <span>Elige fecha</span>
-                          )}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={date}
-                          onSelect={setDate}
-                          initialFocus
-                          locale={es}
-                          disabled={(date) => {
-                            if (date < new Date(new Date().setHours(0, 0, 0, 0))) {
-                              return true;
-                            }
-                            
-                            const dayOfWeek = date.getDay();
-                            const dayKeyMapping: Record<number, keyof Doctor['schedule']> = {
-                              0: 'sunday',
-                              1: 'monday', 
-                              2: 'tuesday',
-                              3: 'wednesday',
-                              4: 'thursday',
-                              5: 'friday',
-                              6: 'saturday'
-                            };
-                            
-                            const dayKey = dayKeyMapping[dayOfWeek];
-                            const hasAvailableDoctors = allDoctors.some((d) => {
-                              const daySchedule = d.schedule[dayKey];
-                              return daySchedule.active && daySchedule.slots.length > 0;
-                            });
-                            
-                            return !hasAvailableDoctors;
-                          }}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
-                  {/* Botón de filtros avanzados */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                      <Filter className="h-3 w-3" />
-                      Más filtros
-                    </label>
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                      className="w-full h-9 text-sm justify-between"
-                    >
-                      <span>Avanzados</span>
-                      <ChevronRight className={cn(
-                        "h-3 w-3 transition-transform",
-                        showAdvancedFilters && "rotate-90"
-                      )} />
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Filtros avanzados expandibles */}
-                {showAdvancedFilters && (
-                  <div className="border-t pt-4 space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {/* Calificación */}
-                      <div className="space-y-2">
-                        <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                          <Star className="h-3 w-3" />
-                          Calificación mínima: {ratingFilter[0]} ⭐
-                        </label>
-                        <Slider
-                          value={ratingFilter}
-                          onValueChange={setRatingFilter}
-                          max={5}
-                          min={0}
-                          step={0.5}
-                          className="w-full"
-                        />
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>0</span>
-                          <span>5</span>
                         </div>
+                        <div className="grid grid-cols-1 gap-3">
+                          {/* Ciudad */}
+                          <div className="space-y-1">
+                            <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                              <MapPin className="h-3 w-3" />
+                              Ciudad
+                            </label>
+                            <Select value={location} onValueChange={setLocation}>
+                              <SelectTrigger className="h-9 text-xs">
+                                <SelectValue placeholder="Todas las ciudades" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">Todas las ciudades</SelectItem>
+                                {cities.map((city) => (
+                                  <SelectItem key={city.name} value={city.name}>
+                                    {city.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {/* Fecha */}
+                          <div className="space-y-1">
+                            <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                              <CalendarIcon className="h-3 w-3" />
+                              Fecha
+                            </label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    "w-full justify-start text-left font-normal h-9 text-xs",
+                                    !date && "text-muted-foreground"
+                                  )}
+                                >
+                                  <CalendarIcon className="mr-2 h-3 w-3" />
+                                  {date ? (
+                                    format(date, "dd/MM", { locale: es })
+                                  ) : (
+                                    <span>Elige fecha</span>
+                                  )}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0">
+                                <Calendar
+                                  mode="single"
+                                  selected={date}
+                                  onSelect={setDate}
+                                  initialFocus
+                                  locale={es}
+                                  disabled={(date) => {
+                                    if (date < new Date(new Date().setHours(0, 0, 0, 0))) {
+                                      return true;
+                                    }
+                                    const dayOfWeek = date.getDay();
+                                    const dayKeyMapping: Record<number, keyof Doctor['schedule']> = {
+                                      0: 'sunday', 1: 'monday', 2: 'tuesday', 3: 'wednesday', 4: 'thursday', 5: 'friday', 6: 'saturday'
+                                    };
+                                    const dayKey = dayKeyMapping[dayOfWeek] as keyof Doctor['schedule'];
+                                    const hasAvailableDoctors = allDoctors.some((d) => {
+                                      const daySchedule = d.schedule[dayKey];
+                                      return daySchedule.active && daySchedule.slots.length > 0;
+                                    });
+                                    return !hasAvailableDoctors;
+                                  }}
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                          {/* Botón de filtros avanzados */}
+                          <div className="space-y-1">
+                            <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                              <Filter className="h-3 w-3" />
+                              Más filtros
+                            </label>
+                            <Button
+                              variant="outline"
+                              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                              className="w-full h-9 text-xs justify-between"
+                            >
+                              <span>Avanzados</span>
+                              <ChevronRight className={cn(
+                                "h-3 w-3 transition-transform",
+                                showAdvancedFilters && "rotate-90"
+                              )} />
+                            </Button>
+                          </div>
+                        </div>
+                        {/* Filtros avanzados expandibles */}
+                        {showAdvancedFilters && (
+                          <div className="border-t pt-4 space-y-4">
+                            <div className="grid grid-cols-1 gap-4">
+                              {/* Calificación */}
+                              <div className="space-y-2">
+                                <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                                  <Star className="h-3 w-3" />
+                                  Calificación mínima: {ratingFilter[0]} ⭐
+                                </label>
+                                <Slider
+                                  value={ratingFilter}
+                                  onValueChange={setRatingFilter}
+                                  max={5}
+                                  min={0}
+                                  step={0.5}
+                                  className="w-full"
+                                />
+                                <div className="flex justify-between text-xs text-muted-foreground">
+                                  <span>0</span>
+                                  <span>5</span>
+                                </div>
+                              </div>
+                              {/* Precio */}
+                              <div className="space-y-2">
+                                <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                                  <DollarSign className="h-3 w-3" />
+                                  Precio: ${priceRange[0]} - ${priceRange[1]}
+                                </label>
+                                <Slider
+                                  value={priceRange}
+                                  onValueChange={setPriceRange}
+                                  max={200}
+                                  min={0}
+                                  step={10}
+                                  className="w-full"
+                                />
+                                <div className="flex justify-between text-xs text-muted-foreground">
+                                  <span>$0</span>
+                                  <span>$200</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
-
-                      {/* Precio */}
-                      <div className="space-y-2">
-                        <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                          <DollarSign className="h-3 w-3" />
-                          Precio: ${priceRange[0]} - ${priceRange[1]}
-                </label>
-                        <Slider
-                          value={priceRange}
-                          onValueChange={setPriceRange}
-                          max={200}
-                          min={0}
-                          step={10}
-                          className="w-full"
-                        />
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>$0</span>
-                          <span>$200</span>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              </div>
+              {/* Filtros escritorio (igual que antes) */}
+              <div className="hidden md:block">
+                {/* Filtros rápidos y avanzados (escritorio) */}
+                <div className="bg-card border rounded-lg p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-base">Filtros Rápidos</h3>
+                    {hasActiveFilters && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={clearFilters}
+                        className="text-muted-foreground hover:text-foreground text-xs"
+                      >
+                        <X className="h-3 w-3 mr-1" />
+                        Limpiar
+                      </Button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {/* Ciudad */}
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                        <MapPin className="h-3 w-3" />
+                        Ciudad
+                      </label>
+                      <Select value={location} onValueChange={setLocation}>
+                        <SelectTrigger className="h-9 text-sm">
+                          <SelectValue placeholder="Todas las ciudades" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todas las ciudades</SelectItem>
+                          {cities.map((city) => (
+                            <SelectItem key={city.name} value={city.name}>
+                              {city.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {/* Fecha */}
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                        <CalendarIcon className="h-3 w-3" />
+                        Fecha
+                      </label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal h-9 text-sm",
+                              !date && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-3 w-3" />
+                            {date ? (
+                              format(date, "dd/MM", { locale: es })
+                            ) : (
+                              <span>Elige fecha</span>
+                            )}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={date}
+                            onSelect={setDate}
+                            initialFocus
+                            locale={es}
+                            disabled={(date) => {
+                              if (date < new Date(new Date().setHours(0, 0, 0, 0))) {
+                                return true;
+                              }
+                              const dayOfWeek = date.getDay();
+                              const dayKeyMapping: Record<number, keyof Doctor['schedule']> = {
+                                0: 'sunday', 1: 'monday', 2: 'tuesday', 3: 'wednesday', 4: 'thursday', 5: 'friday', 6: 'saturday'
+                              };
+                              const dayKey = dayKeyMapping[dayOfWeek] as keyof Doctor['schedule'];
+                              const hasAvailableDoctors = allDoctors.some((d) => {
+                                const daySchedule = d.schedule[dayKey];
+                                return daySchedule.active && daySchedule.slots.length > 0;
+                              });
+                              return !hasAvailableDoctors;
+                            }}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    {/* Botón de filtros avanzados */}
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                        <Filter className="h-3 w-3" />
+                        Más filtros
+                      </label>
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                        className="w-full h-9 text-sm justify-between"
+                      >
+                        <span>Avanzados</span>
+                        <ChevronRight className={cn(
+                          "h-3 w-3 transition-transform",
+                          showAdvancedFilters && "rotate-90"
+                        )} />
+                      </Button>
+                    </div>
+                  </div>
+                  {/* Filtros avanzados expandibles */}
+                  {showAdvancedFilters && (
+                    <div className="border-t pt-4 space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* Calificación */}
+                        <div className="space-y-2">
+                          <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                            <Star className="h-3 w-3" />
+                            Calificación mínima: {ratingFilter[0]} ⭐
+                          </label>
+                          <Slider
+                            value={ratingFilter}
+                            onValueChange={setRatingFilter}
+                            max={5}
+                            min={0}
+                            step={0.5}
+                            className="w-full"
+                          />
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>0</span>
+                            <span>5</span>
+                          </div>
+                        </div>
+                        {/* Precio */}
+                        <div className="space-y-2">
+                          <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                            <DollarSign className="h-3 w-3" />
+                            Precio: ${priceRange[0]} - ${priceRange[1]}
+                          </label>
+                          <Slider
+                            value={priceRange}
+                            onValueChange={setPriceRange}
+                            max={200}
+                            min={0}
+                            step={10}
+                            className="w-full"
+                          />
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>$0</span>
+                            <span>$200</span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
 
               {/* Especialidades */}

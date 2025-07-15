@@ -180,7 +180,7 @@ export function AppointmentsTab({ appointments, onOpenDialog }: { appointments: 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <Card>
           <CardHeader>
-            <CardTitle>Citas de Hoy ({todayAppointments.length})</CardTitle>
+            <CardTitle className="text-base md:text-xl">Citas de Hoy ({todayAppointments.length})</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 max-h-[500px] overflow-y-auto">
             {todayAppointments.length > 0 ? (
@@ -192,7 +192,7 @@ export function AppointmentsTab({ appointments, onOpenDialog }: { appointments: 
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Citas de Mañana ({tomorrowAppointments.length})</CardTitle>
+            <CardTitle className="text-base md:text-xl">Citas de Mañana ({tomorrowAppointments.length})</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 max-h-[500px] overflow-y-auto">
             {tomorrowAppointments.length > 0 ? (
@@ -208,7 +208,7 @@ export function AppointmentsTab({ appointments, onOpenDialog }: { appointments: 
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <CardTitle>Próximas Citas Pendientes</CardTitle>
+              <CardTitle className="text-base md:text-xl">Próximas Citas Pendientes</CardTitle>
               <CardDescription>Citas a partir de pasado mañana.</CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -244,7 +244,7 @@ export function AppointmentsTab({ appointments, onOpenDialog }: { appointments: 
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <CardTitle>Historial de Citas</CardTitle>
+              <CardTitle className="text-base md:text-xl">Historial de Citas</CardTitle>
               <CardDescription>Citas pasadas y atendidas.</CardDescription>
             </div>
             <div className="flex items-center gap-2">

@@ -46,6 +46,10 @@ function generateTimeSlots(startTime: string, endTime: string, duration: number)
     return slots;
 }
 
+function capitalizeWords(str: string) {
+  return str.replace(/\b\w+/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+}
+
 export default function DoctorProfilePage() {
   const params = useParams();
   const router = useRouter();
@@ -62,7 +66,7 @@ export default function DoctorProfilePage() {
   const [uploadProgress, setUploadProgress] = useState<string>('');
   
   const [step, setStep] = useState<'selectDateTime' | 'selectServices' | 'selectPayment' | 'confirmation'>('selectDateTime');
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [selectedServices, setSelectedServices] = useState<Service[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<'efectivo' | 'transferencia' | null>(null);
@@ -477,7 +481,7 @@ export default function DoctorProfilePage() {
                             </div>
                         </div>
                         <div className="pt-20 px-8 pb-6">
-                            <h2 className="text-3xl font-bold font-headline">{doctor.name}</h2>
+                            <h2 className="text-base md:text-2xl font-bold font-headline">Dr@: {capitalizeWords(doctor.name)}</h2>
                             <p className="text-muted-foreground font-medium text-xl">{doctor.specialty}</p>
                         </div>
                     </Card>
@@ -518,11 +522,11 @@ export default function DoctorProfilePage() {
         return (
           <>
             <CardHeader>
-              <CardTitle className="text-2xl">Paso 1: Selecciona Fecha y Hora</CardTitle>
-              <CardDescription>Elige un horario disponible para tu cita.</CardDescription>
+              <CardTitle className="text-base md:text-2xl">Paso 1: Selecciona Fecha y Hora</CardTitle>
+              <CardDescription className="text-xs md:text-base">Elige un horario disponible para tu cita.</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid md:grid-cols-2 gap-8 items-start">
+              <div className="grid md:grid-cols-2 gap-3 md:gap-8 items-start">
                 <div className="flex flex-col items-center">
                   <Calendar
                     mode="single"
@@ -536,28 +540,48 @@ export default function DoctorProfilePage() {
                   />
                 </div>
                 <div className="flex flex-col">
-                  {selectedDate ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      {availableSlots.length > 0 ? availableSlots.map((time) => (
-                        <Button
-                          key={time}
-                          variant={selectedTime === time ? "default" : "outline"}
-                          onClick={() => setSelectedTime(time)}
-                          className="flex items-center gap-2"
-                        >
-                          <Clock className="h-4 w-4" />
-                          {time}
-                        </Button>
-                      )) : <p className="col-span-full text-center text-muted-foreground">No hay horarios disponibles este día.</p>}
-                    </div>
-                  ) : (
-                     <p className="text-muted-foreground text-center md:text-left mt-4">Por favor, selecciona una fecha primero.</p>
-                  )}
-
+                  {/* En móvil, solo mostrar los horarios si hay un día seleccionado */}
+                  <div className="hidden md:block">
+                    {selectedDate ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {availableSlots.length > 0 ? availableSlots.map((time) => (
+                          <Button
+                            key={time}
+                            variant={selectedTime === time ? "default" : "outline"}
+                            onClick={() => setSelectedTime(time)}
+                            className="flex items-center gap-2"
+                          >
+                            <Clock className="h-4 w-4" />
+                            {time}
+                          </Button>
+                        )) : <p className="col-span-full text-center text-muted-foreground">No hay horarios disponibles este día.</p>}
+                      </div>
+                    ) : (
+                       <p className="text-muted-foreground text-center md:text-left mt-4">Por favor, selecciona una fecha primero.</p>
+                    )}
+                  </div>
+                  {/* En móvil, mostrar horarios solo si hay un día seleccionado */}
+                  <div className="block md:hidden">
+                    {selectedDate !== undefined ? (
+                      <div className="grid grid-cols-2 gap-2">
+                        {availableSlots.length > 0 ? availableSlots.map((time) => (
+                          <Button
+                            key={time}
+                            variant={selectedTime === time ? "default" : "outline"}
+                            onClick={() => setSelectedTime(time)}
+                            className="flex items-center gap-2"
+                          >
+                            <Clock className="h-4 w-4" />
+                            {time}
+                          </Button>
+                        )) : <p className="col-span-full text-center text-muted-foreground">No hay horarios disponibles este día.</p>}
+                      </div>
+                    ) : null}
+                  </div>
                   <Button
                     onClick={handleDateTimeSubmit}
                     disabled={!selectedDate || !selectedTime}
-                    className="w-full mt-8"
+                    className="w-full mt-3 md:mt-8"
                     size="lg"
                   >
                     Continuar al Paso 2
@@ -572,11 +596,11 @@ export default function DoctorProfilePage() {
         return (
           <>
             <CardHeader>
-              <CardTitle className="text-2xl">Paso 2: Elige los Servicios</CardTitle>
-              <CardDescription>La tarifa de consulta se añade automáticamente. Selecciona los servicios adicionales que necesites.</CardDescription>
+              <CardTitle className="text-base md:text-2xl">Paso 2: Elige los Servicios</CardTitle>
+              <CardDescription className="text-xs md:text-base">La tarifa de consulta se añade automáticamente. Selecciona los servicios adicionales que necesites.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-3 rounded-md border p-4">
+              <div className="space-y-3 rounded-md border p-2 md:p-4">
                 {doctor.services.length > 0 ? doctor.services.map((service) => (
                   <div key={service.id} className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
@@ -611,7 +635,7 @@ export default function DoctorProfilePage() {
                  </div>
               </div>
 
-              <div className="text-lg font-semibold p-4 bg-muted/50 rounded-lg space-y-3">
+              <div className="text-lg font-semibold p-2 md:p-4 bg-muted/50 rounded-lg space-y-3">
                  <div className="w-full flex justify-between items-center text-base font-normal text-muted-foreground">
                     <span>Tarifa de Consulta:</span>
                     <span>${(doctor.consultationFee || 0).toFixed(2)}</span>
@@ -648,8 +672,8 @@ export default function DoctorProfilePage() {
         return (
           <>
             <CardHeader>
-              <CardTitle className="text-2xl">Paso 3: Método de Pago</CardTitle>
-              <CardDescription>Elige cómo deseas pagar tu cita.</CardDescription>
+              <CardTitle className="text-base md:text-2xl">Paso 3: Método de Pago</CardTitle>
+              <CardDescription className="text-xs md:text-base">Elige cómo deseas pagar tu cita.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <RadioGroup value={paymentMethod || ''} onValueChange={(value) => setPaymentMethod(value as 'efectivo' | 'transferencia')}>
@@ -745,13 +769,21 @@ export default function DoctorProfilePage() {
                             variant="outline" 
                             size="sm" 
                             className="w-full text-xs"
-                            onClick={() => {
+                            onClick={async () => {
                               const accountInfo = `Banco: ${selectedBankDetail.bank}\nTitular: ${selectedBankDetail.accountHolder}\nC.I./R.I.F.: ${selectedBankDetail.idNumber}\nNro. Cuenta: ${selectedBankDetail.accountNumber}`;
-                              navigator.clipboard.writeText(accountInfo);
-                              toast({
-                                title: "Datos copiados",
-                                description: "La información de la cuenta ha sido copiada al portapapeles.",
-                              });
+                              try {
+                                await navigator.clipboard.writeText(accountInfo);
+                                toast({
+                                  title: "Datos copiados",
+                                  description: "La información de la cuenta ha sido copiada al portapapeles.",
+                                });
+                              } catch {
+                                toast({
+                                  variant: "destructive",
+                                  title: "No se pudo copiar",
+                                  description: "Tu navegador no permite copiar al portapapeles. Copia manualmente los datos.",
+                                });
+                              }
                             }}
                           >
                             <Copy className="h-3 w-3 mr-1" />
@@ -796,7 +828,7 @@ export default function DoctorProfilePage() {
                 </Card>
               )}
 
-              <div className="text-base sm:text-lg font-semibold p-3 sm:p-4 bg-muted/50 rounded-lg">
+              <div className="text-base sm:text-lg font-semibold p-2 md:p-4 bg-muted/50 rounded-lg">
                 <div className="w-full flex justify-between items-center text-lg sm:text-xl font-bold">
                     <span>Total a Pagar:</span>
                     <span className="text-primary">${finalPrice.toFixed(2)}</span>
@@ -863,7 +895,7 @@ export default function DoctorProfilePage() {
             <CardContent className="space-y-6">
                 <div className="border rounded-lg p-4 space-y-4">
                     <h4 className="font-semibold text-lg">Resumen de la Cita</h4>
-                    <p><strong>Médico:</strong> {doctor.name}</p>
+                    <p><strong>Médico:</strong> Dr@: {capitalizeWords(doctor.name)}</p>
                     <p><strong>Fecha:</strong> {selectedDate?.toLocaleDateString("es-ES", { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                     <p><strong>Hora:</strong> {selectedTime}</p>
                     <div>
@@ -933,7 +965,7 @@ export default function DoctorProfilePage() {
                 </div>
             </div>
             <div className="pt-20 px-8 pb-6">
-                 <h2 className="text-3xl font-bold font-headline">{doctor.name}</h2>
+                 <h2 className="text-base md:text-2xl font-bold font-headline">Dr@: {capitalizeWords(doctor.name)}</h2>
                  <p className="text-primary font-medium text-xl">{doctor.specialty}</p>
                   <div className="flex items-center gap-1.5 mt-2 text-sm">
                     <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />

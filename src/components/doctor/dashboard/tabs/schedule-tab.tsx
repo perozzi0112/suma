@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { CheckCircle, Loader2, X } from 'lucide-react';
+import { CheckCircle, Loader2, X, Power } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import * as firestoreService from '@/lib/firestoreService';
 
@@ -68,19 +68,31 @@ export function ScheduleTab({ doctorData, onScheduleUpdate }: ScheduleTabProps) 
 
   return (
     <Card>
-      <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between">
-        <CardTitle>Mi Horario</CardTitle>
-        <Button onClick={handleSaveSchedule} disabled={isScheduleSaved}>
+      <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0 py-3 md:py-6">
+        <CardTitle className="text-base md:text-2xl">Mi Horario</CardTitle>
+        <Button onClick={handleSaveSchedule} disabled={isScheduleSaved} className="w-full md:w-auto mt-2 md:mt-0">
           {isScheduleSaved ? <CheckCircle className="mr-2"/> : <Loader2 className="mr-2 animate-spin"/>}
           {isScheduleSaved ? 'Horario Guardado' : 'Guardar Cambios'}
         </Button>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3 md:space-y-4">
         {tempSchedule && daysOfWeek.map(day => (
-          <div key={day} className="border p-4 rounded-lg">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">{dayLabels[day]}</h3>
-              <div className="flex items-center gap-2">
+          <div key={day} className="border p-3 md:p-4 rounded-lg space-y-2 md:space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2 md:mb-4">
+              <h3 className="text-sm md:text-lg font-semibold">{dayLabels[day]}</h3>
+              {/* Botón toggle en móvil, switch en escritorio */}
+              <div className="block md:hidden w-full">
+                <Button
+                  type="button"
+                  onClick={() => handleScheduleChange(day, 'active', !tempSchedule[day].active)}
+                  className={`w-full flex items-center justify-center gap-2 text-xs py-2 ${tempSchedule[day].active ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-600'}`}
+                  variant={tempSchedule[day].active ? 'default' : 'outline'}
+                >
+                  <Power className="h-4 w-4" />
+                  {tempSchedule[day].active ? 'Activo' : 'Inactivo'}
+                </Button>
+              </div>
+              <div className="hidden md:flex items-center gap-2">
                 <Label htmlFor={`switch-${day}`}>Atiende</Label>
                 <Switch 
                   id={`switch-${day}`} 
@@ -93,14 +105,12 @@ export function ScheduleTab({ doctorData, onScheduleUpdate }: ScheduleTabProps) 
               <div className="space-y-2">
                 {tempSchedule[day].slots.map((slot, index) => (
                   <div key={index} className="flex items-center gap-2">
-                    <Input type="time" value={slot.start} onChange={(e) => handleScheduleChange(day, 'slot', {...slot, start: e.target.value}, index)} />
-                    <Input type="time" value={slot.end} onChange={(e) => handleScheduleChange(day, 'slot', {...slot, end: e.target.value}, index)} />
-                    <Button variant="ghost" size="icon" onClick={() => handleRemoveSlot(day, index)}>
-                      <X className="h-4 w-4"/>
-                    </Button>
+                    <Input type="time" value={slot.start} onChange={(e) => handleScheduleChange(day, 'slot', {...slot, start: e.target.value}, index)} className="h-8 w-24 text-xs md:h-10 md:w-32 md:text-sm" />
+                    <Input type="time" value={slot.end} onChange={(e) => handleScheduleChange(day, 'slot', {...slot, end: e.target.value}, index)} className="h-8 w-24 text-xs md:h-10 md:w-32 md:text-sm" />
+                    <Button variant="ghost" size="icon" onClick={() => handleRemoveSlot(day, index)} className="h-8 w-8 md:h-10 md:w-10"><X className="h-4 w-4"/></Button>
                   </div>
                 ))}
-                <Button variant="outline" size="sm" onClick={() => handleAddSlot(day)}>+ Añadir bloque</Button>
+                <Button variant="outline" size="sm" onClick={() => handleAddSlot(day)} className="h-8 px-2 text-xs md:h-10 md:px-4 md:text-sm">+ Añadir bloque</Button>
               </div>
             )}
           </div>

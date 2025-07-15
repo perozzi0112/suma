@@ -171,7 +171,7 @@ export function ReferralsTab({ referredDoctors, referralCode, onUpdate }: Referr
             saturday: { active: false, slots: [] },
             sunday: { active: false, slots: [] },
         },
-        status: 'active', lastPaymentDate: joinDateVenezuela,
+        status: 'active', lastPaymentDate: '',
         whatsapp: '', lat: 0, lng: 0,
         joinDate: joinDateVenezuela,
         subscriptionStatus: 'active', nextPaymentDate: paymentDateVenezuela,

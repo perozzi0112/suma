@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Wallet, 
   PlusCircle, 
@@ -49,7 +48,6 @@ interface IncomeData {
 export function FinancesTab({ doctorData, appointments, onOpenExpenseDialog, onDeleteItem }: FinancesTabProps) {
   const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month' | 'year' | 'all'>('month');
   const [activeTab, setActiveTab] = useState('overview');
-  const [expenseFilter, setExpenseFilter] = useState('all');
 
   // Calcular estadísticas financieras
   const financialStats = useMemo(() => {
@@ -303,12 +301,8 @@ export function FinancesTab({ doctorData, appointments, onOpenExpenseDialog, onD
       });
     }
     
-    if (expenseFilter !== 'all') {
-      expenses = expenses.filter(e => e.category === expenseFilter);
-    }
-    
     return expenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [doctorData.expenses, timeRange, expenseFilter]);
+  }, [doctorData.expenses, timeRange]);
 
   return (
     <div className="space-y-6">
@@ -317,7 +311,7 @@ export function FinancesTab({ doctorData, appointments, onOpenExpenseDialog, onD
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-base md:text-xl">
                 <BarChart3 className="h-5 w-5" />
                 Panel Financiero
               </CardTitle>
@@ -328,11 +322,12 @@ export function FinancesTab({ doctorData, appointments, onOpenExpenseDialog, onD
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid w-full grid-cols-2 sm:grid-cols-5 gap-2">
+          <div className="flex w-full justify-between gap-1 md:gap-2">
             <Button 
               variant={timeRange === 'today' ? 'default' : 'outline'} 
               onClick={() => setTimeRange('today')}
               size="sm"
+              className="flex-1 px-1 py-1 text-xs md:text-sm min-w-0"
             >
               Hoy
             </Button>
@@ -340,6 +335,7 @@ export function FinancesTab({ doctorData, appointments, onOpenExpenseDialog, onD
               variant={timeRange === 'week' ? 'default' : 'outline'} 
               onClick={() => setTimeRange('week')}
               size="sm"
+              className="flex-1 px-1 py-1 text-xs md:text-sm min-w-0"
             >
               Semana
             </Button>
@@ -347,6 +343,7 @@ export function FinancesTab({ doctorData, appointments, onOpenExpenseDialog, onD
               variant={timeRange === 'month' ? 'default' : 'outline'} 
               onClick={() => setTimeRange('month')}
               size="sm"
+              className="flex-1 px-1 py-1 text-xs md:text-sm min-w-0"
             >
               Mes
             </Button>
@@ -354,6 +351,7 @@ export function FinancesTab({ doctorData, appointments, onOpenExpenseDialog, onD
               variant={timeRange === 'year' ? 'default' : 'outline'} 
               onClick={() => setTimeRange('year')}
               size="sm"
+              className="flex-1 px-1 py-1 text-xs md:text-sm min-w-0"
             >
               Año
             </Button>
@@ -361,6 +359,7 @@ export function FinancesTab({ doctorData, appointments, onOpenExpenseDialog, onD
               variant={timeRange === 'all' ? 'default' : 'outline'} 
               onClick={() => setTimeRange('all')}
               size="sm"
+              className="flex-1 px-1 py-1 text-xs md:text-sm min-w-0"
             >
               Global
             </Button>
@@ -572,20 +571,6 @@ export function FinancesTab({ doctorData, appointments, onOpenExpenseDialog, onD
                 </CardDescription>
               </div>
               <div className="flex flex-col sm:flex-row gap-2">
-                <Select value={expenseFilter} onValueChange={setExpenseFilter}>
-                  <SelectTrigger className="w-full sm:w-[180px]">
-                    <SelectValue placeholder="Filtrar por categoría" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas las categorías</SelectItem>
-                    <SelectItem value="equipment">Equipamiento</SelectItem>
-                    <SelectItem value="supplies">Suministros</SelectItem>
-                    <SelectItem value="rent">Alquiler</SelectItem>
-                    <SelectItem value="utilities">Servicios</SelectItem>
-                    <SelectItem value="marketing">Marketing</SelectItem>
-                    <SelectItem value="other">Otros</SelectItem>
-                  </SelectContent>
-                </Select>
                 <Button onClick={() => onOpenExpenseDialog(null)} className="bg-red-600 hover:bg-red-700">
                   <PlusCircle className="mr-2 h-4 w-4"/>
                   Agregar Gasto

@@ -21,7 +21,7 @@ import { useNotifications } from '@/lib/notifications';
 import { useChatNotifications } from '@/lib/chat-notifications';
 import * as firestoreService from '@/lib/firestoreService';
 import type { Appointment, Doctor, ChatMessage } from '@/lib/types';
-import { HeaderWrapper } from '@/components/header';
+import { HeaderWrapper, BottomNav } from '@/components/header';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
@@ -378,11 +378,11 @@ export default function DashboardPage() {
     <div className="flex flex-col min-h-screen bg-background">
       <HeaderWrapper />
       <main className="flex-1 bg-muted/40 pb-20 md:pb-0">
-        <div className="container py-12">
-          <div className="flex justify-between items-start mb-8">
+        <div className="container py-4 md:py-12">
+          <div className="flex justify-between items-start mb-3 md:mb-8">
             <div>
-              <h1 className="text-3xl font-bold font-headline mb-2">¡Bienvenido de nuevo, {user.name}!</h1>
-              <p className="text-muted-foreground">Este es tu panel médico personal.</p>
+              <h1 className="text-lg md:text-3xl font-bold font-headline mb-1 md:mb-2">¡Bienvenido de nuevo, {user.name}!</h1>
+              <p className="text-xs md:text-base text-muted-foreground">Este es tu panel médico personal.</p>
             </div>
             <Button 
               variant="outline" 
@@ -391,22 +391,21 @@ export default function DashboardPage() {
               className="flex items-center gap-2"
             >
               <RefreshCw className="h-4 w-4" />
-              Actualizar
+              <span className="hidden md:inline">Actualizar</span>
             </Button>
           </div>
-          
-          <div className="grid md:grid-cols-3 gap-8 items-start">
-            <div className="md:col-span-2 grid gap-8">
+          <div className="grid md:grid-cols-3 gap-3 md:gap-8 items-start">
+            <div className="md:col-span-2 grid gap-3 md:gap-8">
               <Card>
                 <CardHeader>
-                  <CardTitle>Próximas Citas</CardTitle>
+                  <CardTitle className="text-base md:text-xl">Próximas Citas</CardTitle>
                   {upcomingAppointments.length === 0 && (
-                     <CardDescription>No tienes próximas citas agendadas.</CardDescription>
+                     <CardDescription className="text-xs md:text-sm">No tienes próximas citas agendadas.</CardDescription>
                   )}
                 </CardHeader>
                 <CardContent>
                   {upcomingAppointments.length > 0 ? (
-                    <div className="space-y-4">
+                    <div className="space-y-2 md:space-y-4">
                       {upcomingAppointments.map(appt => (
                         <AppointmentCard 
                           key={appt.id} 
@@ -418,10 +417,10 @@ export default function DashboardPage() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-12 text-muted-foreground flex flex-col items-center gap-4">
-                      <CalendarPlus className="h-12 w-12" />
-                      <p>¿Listo para tu próxima consulta?</p>
-                      <Button asChild>
+                    <div className="text-center py-6 md:py-12 text-muted-foreground flex flex-col items-center gap-2 md:gap-4">
+                      <CalendarPlus className="h-8 w-8 md:h-12 md:w-12" />
+                      <p className="text-xs md:text-base">¿Listo para tu próxima consulta?</p>
+                      <Button asChild size="sm" className="text-xs md:text-base">
                         <Link href="/find-a-doctor">Reservar una Cita</Link>
                       </Button>
                     </div>
@@ -431,12 +430,12 @@ export default function DashboardPage() {
 
               <Card>
                 <CardHeader>
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 md:gap-4">
                     <div>
-                      <CardTitle>Historial Médico</CardTitle>
-                      <CardDescription>Un resumen de tus consultas pasadas.</CardDescription>
+                      <CardTitle className="text-base md:text-xl">Historial Médico</CardTitle>
+                      <CardDescription className="text-xs md:text-sm">Un resumen de tus consultas pasadas.</CardDescription>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 md:gap-2">
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
@@ -444,7 +443,7 @@ export default function DashboardPage() {
                           placeholder="Filtrar por fecha..."
                           value={dateFilter}
                           onChange={(e) => handleDateFilter(e.target.value)}
-                          className="pl-10 w-full sm:w-[200px]"
+                          className="pl-10 w-full sm:w-[140px] md:w-[200px] text-xs md:text-sm h-8 md:h-10"
                         />
                       </div>
                       {isFilterActive && (
@@ -452,7 +451,7 @@ export default function DashboardPage() {
                           variant="outline"
                           size="sm"
                           onClick={clearFilter}
-                          className="flex items-center gap-2"
+                          className="flex items-center gap-1 md:gap-2 text-xs md:text-sm"
                         >
                           <Filter className="h-4 w-4" />
                           Limpiar
@@ -462,16 +461,9 @@ export default function DashboardPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                   {/* The original code had filteredPastAppointments, but it's no longer used.
-                       The filtering logic is now handled by the dateFilter state.
-                       The totalPages calculation is also removed as it's not directly tied to filteredPastAppointments.
-                       The pagination logic is also removed as it's not directly tied to filteredPastAppointments.
-                       The filteredPastAppointments variable is removed.
-                       The totalPages variable is removed.
-                       The paginatedPast variable is removed.
-                       The return object is simplified. */}
+                   {/* The original code had filteredPastAppointments, pero ya no se usa. */}
                    {appointments.length > 0 ? (
-                    <div className="space-y-4">
+                    <div className="space-y-2 md:space-y-4">
                       {appointments.map(appt => (
                         <AppointmentCard 
                           key={appt.id} 
@@ -484,9 +476,9 @@ export default function DashboardPage() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-12 text-muted-foreground flex flex-col items-center gap-4">
-                      <ClipboardList className="h-12 w-12" />
-                      <p>
+                    <div className="text-center py-6 md:py-12 text-muted-foreground flex flex-col items-center gap-2 md:gap-4">
+                      <ClipboardList className="h-8 w-8 md:h-12 md:w-12" />
+                      <p className="text-xs md:text-base">
                         {isFilterActive 
                           ? 'No se encontraron citas para la fecha seleccionada.' 
                           : 'Tu historial médico aparecerá aquí después de tu primera cita.'
@@ -502,18 +494,17 @@ export default function DashboardPage() {
             <div className="md:col-span-1">
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><User /> Mi Perfil</CardTitle>
+                  <CardTitle className="flex items-center gap-2 text-base md:text-xl"><User /> Mi Perfil</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-2 md:space-y-4">
                   {/* Foto de perfil */}
                   <div className="flex justify-center">
-                    <Avatar className="h-20 w-20">
+                    <Avatar className="h-16 w-16 md:h-20 md:w-20">
                       <AvatarImage src={user.profileImage ?? undefined} alt={user.name} />
-                      <AvatarFallback className="text-lg">{user.name.charAt(0)}</AvatarFallback>
+                      <AvatarFallback className="text-base md:text-lg">{user.name.charAt(0)}</AvatarFallback>
                     </Avatar>
                   </div>
-                  
-                  <div className="space-y-3 text-sm">
+                  <div className="space-y-2 md:space-y-3 text-xs md:text-sm">
                      <div>
                         <p className="font-semibold">Nombre</p>
                         <p className="text-muted-foreground">{user.name}</p>
@@ -533,7 +524,7 @@ export default function DashboardPage() {
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button asChild variant="outline" className="w-full">
+                  <Button asChild variant="outline" className="w-full text-xs md:text-base">
                     <Link href="/profile">
                         <Edit className="mr-2 h-4 w-4"/>
                         Editar Perfil
@@ -545,6 +536,7 @@ export default function DashboardPage() {
           </div>
         </div>
       </main>
+      <BottomNav />
 
       {/* Chat Dialog */}
       <Dialog open={isChatDialogOpen} onOpenChange={(open) => {

@@ -737,112 +737,115 @@ export function Header() {
               <SheetHeader className="text-left">
                  <SheetTitle className="sr-only">Menú</SheetTitle>
               </SheetHeader>
-              <div className="flex flex-col gap-4 py-6">
-                <div className="flex items-center gap-2 font-bold text-lg mb-4">
-                  <Stethoscope className="h-6 w-6 text-primary" />
-                  <span className="font-headline">SUMA</span>
+              <div className="flex flex-col gap-4 py-6 px-2">
+                <div className="flex items-center gap-2 font-bold text-base mb-3">
+                  <Stethoscope className="h-5 w-5 text-primary" />
+                  <span className="font-headline text-base">SUMA</span>
                 </div>
                 {user?.role === 'admin' && pathname.startsWith('/admin') && (
-                   <div className="flex flex-col gap-3">
-                    <p className="text-muted-foreground font-semibold text-sm">PANEL ADMIN</p>
+                  <div className="flex flex-col gap-2">
+                    <p className="text-muted-foreground font-semibold text-xs mb-1">PANEL ADMIN</p>
                     {adminNavLinks.map((link) => (
                       <SheetClose key={link.href} asChild>
-                        <Link href={link.href} className="text-lg font-medium hover:text-primary">
-                          {link.label}
+                        <Link href={link.href} className="flex items-center gap-2 text-sm font-medium py-2 px-2 rounded hover:bg-muted transition">
+                          <span>{link.label}</span>
                         </Link>
                       </SheetClose>
                     ))}
-                   </div>
+                  </div>
                 )}
                 {user?.role === 'doctor' && pathname.startsWith('/doctor') && (
-                   <div className="flex flex-col gap-3">
-                    <p className="text-muted-foreground font-semibold text-sm">PANEL DOCTOR</p>
+                  <div className="flex flex-col gap-2">
+                    <p className="text-muted-foreground font-semibold text-xs mb-1">PANEL DOCTOR</p>
                     {doctorNavLinks.map((link) => (
                       <SheetClose key={link.href} asChild>
-                        <Link href={link.href} className="text-lg font-medium hover:text-primary">
-                          {link.label}
+                        <Link href={link.href} className="flex items-center gap-2 text-sm font-medium py-2 px-2 rounded hover:bg-muted transition">
+                          <span>{link.label}</span>
                         </Link>
                       </SheetClose>
                     ))}
-                   </div>
+                  </div>
                 )}
                  {user?.role === 'seller' && pathname.startsWith('/seller') && (
-                   <div className="flex flex-col gap-3">
-                    <p className="text-muted-foreground font-semibold text-sm">PANEL VENDEDORA</p>
+                  <div className="flex flex-col gap-2">
+                    <p className="text-muted-foreground font-semibold text-xs mb-1">PANEL VENDEDORA</p>
                     {sellerNavLinks.map((link) => (
                       <SheetClose key={link.href} asChild>
-                        <Link href={link.href} className="text-lg font-medium hover:text-primary">
-                          {link.label}
+                        <Link href={link.href} className="flex items-center gap-2 text-sm font-medium py-2 px-2 rounded hover:bg-muted transition">
+                          <span>{link.label}</span>
                         </Link>
                       </SheetClose>
                     ))}
-                   </div>
+                  </div>
                 )}
-                {(!user || user.role === 'patient') && patientNavLinks.map((link) => (
-                  <SheetClose key={link.href} asChild>
-                    <Link href={link.href} className="text-lg font-medium hover:text-primary">
-                      {link.label}
-                    </Link>
-                  </SheetClose>
-                ))}
-                <div className="border-t pt-4 mt-2">
+                {(!user || user.role === 'patient') && (
+                  <div className="flex flex-col gap-2">
+                    {patientNavLinks.map((link) => (
+                      <SheetClose key={link.href} asChild>
+                        <Link href={link.href} className="flex items-center gap-2 text-sm font-medium py-2 px-2 rounded hover:bg-muted transition">
+                          <span>{link.label}</span>
+                        </Link>
+                      </SheetClose>
+                    ))}
+                  </div>
+                )}
+                <div className="border-t pt-3 mt-2">
                   {user ? (
-                    <div className="space-y-4">
-                       <div className="flex items-center gap-3">
-                         <Avatar>
-                           {user.profileImage && <AvatarImage src={user.profileImage} alt={user.name} />}
-                           <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
-                         </Avatar>
-                         <div>
-                           <p className="font-medium">{user.name}</p>
-                           <p className="text-sm text-muted-foreground">{user.email}</p>
-                         </div>
-                       </div>
-                       <SheetClose asChild>
-                          <Link href={dashboardHref} className="flex items-center text-lg font-medium hover:text-primary">
-                            <LayoutDashboard className="mr-2 h-5 w-5" /> Panel de Control
-                          </Link>
-                       </SheetClose>
-                       {user.role === 'patient' && (
-                          <>
-                            <SheetClose asChild>
-                              <Link href="/profile" className="flex items-center text-lg font-medium hover:text-primary">
-                                <User className="mr-2 h-5 w-5" /> Mi Perfil
-                              </Link>
-                            </SheetClose>
-                            <SheetClose asChild>
-                              <Link href="/favorites" className="flex items-center text-lg font-medium hover:text-primary">
-                                <Heart className="mr-2 h-5 w-5" /> Mis Favoritos
-                              </Link>
-                            </SheetClose>
-                          </>
-                       )}
-                       {user.role === 'seller' && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Avatar className="h-8 w-8">
+                          {user.profileImage && <AvatarImage src={user.profileImage} alt={user.name} />}
+                          <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium text-sm leading-tight">{user.name}</p>
+                          <p className="text-xs text-muted-foreground leading-tight">{user.email}</p>
+                        </div>
+                      </div>
+                      <SheetClose asChild>
+                        <Link href={dashboardHref} className="flex items-center gap-2 text-sm font-medium py-2 px-2 rounded hover:bg-muted transition">
+                          <LayoutDashboard className="h-4 w-4 text-primary" /> Panel de Control
+                        </Link>
+                      </SheetClose>
+                      {user.role === 'patient' && (
+                        <>
                           <SheetClose asChild>
-                            <Link href="/seller/profile" className="flex items-center text-lg font-medium hover:text-primary">
-                              <User className="mr-2 h-5 w-5" /> Mi Perfil
+                            <Link href="/profile" className="flex items-center gap-2 text-sm font-medium py-2 px-2 rounded hover:bg-muted transition">
+                              <User className="h-4 w-4 text-primary" /> Mi Perfil
                             </Link>
                           </SheetClose>
-                       )}
-
-                       <Button onClick={() => { logout(); }} className="w-full">
-                         <LogOut className="mr-2 h-4 w-4" /> Cerrar Sesión
-                       </Button>
+                          <SheetClose asChild>
+                            <Link href="/favorites" className="flex items-center gap-2 text-sm font-medium py-2 px-2 rounded hover:bg-muted transition">
+                              <Heart className="h-4 w-4 text-primary" /> Mis Favoritos
+                            </Link>
+                          </SheetClose>
+                        </>
+                      )}
+                      {user.role === 'seller' && (
+                        <SheetClose asChild>
+                          <Link href="/seller/profile" className="flex items-center gap-2 text-sm font-medium py-2 px-2 rounded hover:bg-muted transition">
+                            <User className="h-4 w-4 text-primary" /> Mi Perfil
+                          </Link>
+                        </SheetClose>
+                      )}
+                      <Button onClick={logout} className="w-full h-8 text-sm flex items-center gap-2 justify-center mt-2">
+                        <LogOut className="h-4 w-4" /> Cerrar Sesión
+                      </Button>
                     </div>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                       <SheetClose asChild>
-                        <Button variant="outline" className="w-full" asChild>
+                        <Button variant="outline" className="w-full h-8 text-sm" asChild>
                           <Link href="/auth/login">Iniciar Sesión</Link>
                         </Button>
                       </SheetClose>
                       <SheetClose asChild>
-                        <Button className="w-full" asChild>
+                        <Button className="w-full h-8 text-sm" asChild>
                           <Link href="/auth/register">Registrarse (Paciente)</Link>
                         </Button>
                       </SheetClose>
                       <SheetClose asChild>
-                        <Button className="w-full" variant="secondary" asChild>
+                        <Button className="w-full h-8 text-sm" variant="secondary" asChild>
                           <Link href="/auth/register-doctor">Registrarse (Médico)</Link>
                         </Button>
                       </SheetClose>

@@ -34,16 +34,16 @@ export default function Home() {
       <HeaderWrapper />
       <main className="flex-1 pb-20 md:pb-0">
         {/* Hero Section */}
-        <section className="container text-center py-20 md:py-32">
+        <section className="container text-center py-10 md:py-32">
           <div className="max-w-3xl mx-auto">
-            <h1 className="text-4xl md:text-6xl font-bold font-headline tracking-tighter">
+            <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold font-headline tracking-tighter">
               Sistema Unificado de Medicina Avanzada
             </h1>
-            <p className="text-lg text-muted-foreground mt-6">
+            <p className="text-base sm:text-lg text-muted-foreground mt-4 sm:mt-6">
               Encuentra, reserva y gestiona tus citas médicas en un solo lugar.
               Cuidar tu salud nunca fue tan fácil.
             </p>
-            <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" asChild>
                 <Link href="/find-a-doctor">Busca tu Médico</Link>
               </Button>
@@ -75,7 +75,7 @@ export default function Home() {
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
            </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 -mt-24 relative z-10 px-4">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 -mt-16 sm:-mt-24 relative z-10 px-2 sm:px-4">
               <FeatureCard
                 icon={<Search />}
                 title="Búsqueda Inteligente"
@@ -114,14 +114,14 @@ function FeatureCard({
   description: string;
 }) {
   return (
-    <div className="bg-card p-6 rounded-xl shadow-lg text-center flex flex-col items-center border">
-      <div className="mb-4 inline-block bg-primary/10 p-4 rounded-full">
+    <div className="bg-card p-4 sm:p-6 rounded-xl shadow-lg text-center flex flex-col items-center border">
+      <div className="mb-3 sm:mb-4 inline-block bg-primary/10 p-3 sm:p-4 rounded-full">
         {React.cloneElement(icon as React.ReactElement, {
-          className: "h-8 w-8 text-primary",
+          className: "h-7 w-7 sm:h-8 sm:w-8 text-primary",
         })}
       </div>
-      <h3 className="text-xl font-bold font-headline mb-2">{title}</h3>
-      <p className="text-muted-foreground text-sm">{description}</p>
+      <h3 className="text-base sm:text-lg md:text-xl font-bold font-headline mb-1 sm:mb-2">{title}</h3>
+      <p className="text-muted-foreground text-xs sm:text-sm">{description}</p>
     </div>
   );
 }

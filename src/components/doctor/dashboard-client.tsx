@@ -101,6 +101,10 @@ function DashboardLoading() {
   );
 }
 
+function capitalizeWords(str: string) {
+  return str.replace(/\b\w+/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+}
+
 export function DoctorDashboardClient({ currentTab }: { currentTab: string }) {
     const { user, loading, changePassword } = useAuth();
     // const router = useRouter(); // Comentado porque no se usa actualmente
@@ -433,23 +437,28 @@ ID Transacción: ${transactionId}`;
         <div className="flex flex-col min-h-screen bg-background">
             <HeaderWrapper />
             <main className="flex-1 bg-muted/40">
-                <div className="container py-12">
-                    <h1 className="text-3xl font-bold font-headline mb-2">Panel del Médico</h1>
-                    <p className="text-muted-foreground mb-8">Bienvenido de nuevo, {user.name}.</p>
-                    
-                    {/* Elimina el TabsList y los TabsTrigger, y solo renderiza el contenido: */}
-                        <div className="mt-6">
+                <div className="container py-6 md:py-12 px-2 md:px-0">
+                    <h1 className="text-lg md:text-3xl font-bold font-headline mb-1 md:mb-2">Panel del Médico</h1>
+                    <p className="text-xs md:text-base text-muted-foreground mb-4 md:mb-8">Bienvenido de nuevo, Dr@:&nbsp;{capitalizeWords(user.name)}.</p>
+                    <div className="mt-3 md:mt-6">
+                        {/* Tabs y contenido */}
                         {currentTab === "appointments" && <AppointmentsTab appointments={appointments} onOpenDialog={handleOpenAppointmentDialog} />}
                         {currentTab === "finances" && <FinancesTab doctorData={doctorData} appointments={appointments} onOpenExpenseDialog={(exp) => {setEditingExpense(exp); setIsExpenseDialogOpen(true);}} onDeleteItem={(type, id) => {setItemToDelete({type, id}); setIsDeleteDialogOpen(true);}}/>}
-                        {currentTab === "subscription" && <SubscriptionTab doctorData={doctorData} doctorPayments={doctorPayments} onOpenPaymentDialog={() => setIsPaymentReportOpen(true)} subscriptionFee={subscriptionFee}/>}
-                        {currentTab === "profile" && <ProfileTab doctorData={doctorData} onProfileUpdate={async () => { await fetchData(); }} onPasswordChange={async (currentPassword: string, newPassword: string) => { return await changePassword(currentPassword, newPassword); }} />}
+                        {currentTab === "subscription" && <SubscriptionTab doctorData={doctorData} doctorPayments={doctorPayments} onOpenPaymentDialog={() => setIsPaymentReportOpen(true)} subscriptionFee={subscriptionFee}/>} 
+                        {currentTab === "profile" && (
+  <ProfileTab
+    doctorData={doctorData}
+    onProfileUpdate={fetchData}
+    onOpenPasswordDialog={() => setIsPasswordDialogOpen(true)}
+  />
+)}
                         {currentTab === "services" && <ServicesTab services={doctorData.services || []} onOpenDialog={(s) => {setEditingService(s); setIsServiceDialogOpen(true);}} onDeleteItem={(type, id) => {setItemToDelete({type, id}); setIsDeleteDialogOpen(true);}}/>}
                         {currentTab === "schedule" && <ScheduleTab doctorData={doctorData} onScheduleUpdate={fetchData} />}
                         {currentTab === "bank-details" && <BankDetailsTab bankDetails={doctorData.bankDetails || []} onOpenDialog={(bd) => {setEditingBankDetail(bd); setIsBankDetailDialogOpen(true);}} onDeleteItem={(type, id) => {setItemToDelete({type, id}); setIsDeleteDialogOpen(true);}}/>}
                         {currentTab === "coupons" && <CouponsTab coupons={doctorData.coupons || []} onOpenDialog={(c) => {setEditingCoupon(c); setIsCouponDialogOpen(true);}} onDeleteItem={(type, id) => {setItemToDelete({type, id}); setIsDeleteDialogOpen(true);}}/>}
                         {currentTab === "chat" && <ChatTab appointments={appointments} onOpenChat={(appointment) => handleOpenAppointmentDialog('chat', appointment)} />}
                         {currentTab === "support" && <SupportTab supportTickets={supportTickets} onViewTicket={(t) => {setSelectedSupportTicket(t); setIsSupportDetailOpen(true);}} onOpenTicketDialog={() => setIsSupportDialogOpen(true)} onCreateTestTickets={handleCreateTestTickets} />}
-                        </div>
+                    </div>
                 </div>
             </main>
             

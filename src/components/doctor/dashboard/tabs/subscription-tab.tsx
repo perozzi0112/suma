@@ -122,6 +122,25 @@ export function SubscriptionTab({ doctorData, doctorPayments, onOpenPaymentDialo
     setCurrentPage(page);
   };
 
+  function getNextCycleDates(settings: AppSettings | null, today = new Date()) {
+    if (!settings?.billingCycleStartDay || !settings?.billingCycleEndDay) return { nextStart: null, nextEnd: null };
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const startDay = settings.billingCycleStartDay;
+    const endDay = settings.billingCycleEndDay;
+    let nextStart, nextEnd;
+    if (today.getDate() < startDay) {
+      nextStart = new Date(year, month, startDay);
+      nextEnd = new Date(year, month, endDay);
+    } else {
+      // Si ya pasó el inicio, el próximo ciclo es el mes siguiente
+      nextStart = new Date(year, month + 1, startDay);
+      nextEnd = new Date(year, month + 1, endDay);
+    }
+    return { nextStart, nextEnd };
+  }
+  const { nextStart, nextEnd } = getNextCycleDates(settings);
+
   return (
     <>
       <div className="space-y-6">
@@ -176,9 +195,21 @@ export function SubscriptionTab({ doctorData, doctorPayments, onOpenPaymentDialo
                     <p className="text-sm text-muted-foreground">Último Pago</p>
                   </div>
                   <p className="font-semibold text-sm">
-                    {doctorData.lastPaymentDate ? 
-                      format(new Date(doctorData.lastPaymentDate + 'T00:00:00'), "d 'de' MMM, yyyy", { locale: es }) : 
-                      'N/A'}
+                    {doctorData.lastPaymentDate
+                      ? format(new Date(doctorData.lastPaymentDate + 'T00:00:00'), "d 'de' MMM, yyyy", { locale: es })
+                      : 'Usuario nuevo, sin pago'}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-white">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Calendar className="h-4 w-4 text-blue-600" />
+                    <p className="text-sm text-muted-foreground">Próximo Pago</p>
+                  </div>
+                  <p className="font-semibold text-sm">
+                    {nextStart ? format(nextStart, "d 'de' MMM, yyyy", { locale: es }) : 'N/A'}
                   </p>
                 </CardContent>
               </Card>
@@ -190,9 +221,7 @@ export function SubscriptionTab({ doctorData, doctorPayments, onOpenPaymentDialo
                     <p className="text-sm text-muted-foreground">Próximo Vencimiento</p>
                   </div>
                   <p className="font-semibold text-sm">
-                    {doctorData.nextPaymentDate ? 
-                      format(new Date(doctorData.nextPaymentDate + 'T00:00:00'), "d 'de' MMM, yyyy", { locale: es }) : 
-                      'N/A'}
+                    {nextEnd ? format(nextEnd, "d 'de' MMM, yyyy", { locale: es }) : 'N/A'}
                   </p>
                 </CardContent>
               </Card>

@@ -28,7 +28,8 @@ const DoctorProfileSchema = z.object({
 interface ProfileTabProps {
   doctorData: Doctor;
   onProfileUpdate: () => void;
-  onPasswordChange: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
+  // onPasswordChange eliminado porque no se usa
+  onOpenPasswordDialog: () => void;
 }
 
 // Función para comprimir imagen antes de convertir a base64
@@ -85,7 +86,7 @@ const fileToDataUri = async (file: File): Promise<string> => {
   return await compressImage(file, maxSizeKB);
 };
 
-export function ProfileTab({ doctorData, onProfileUpdate, onPasswordChange }: ProfileTabProps) {
+export function ProfileTab({ doctorData, onProfileUpdate, onOpenPasswordDialog }: ProfileTabProps) {
   const { toast } = useToast();
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [bannerImageFile, setBannerImageFile] = useState<File | null>(null);
@@ -160,36 +161,41 @@ export function ProfileTab({ doctorData, onProfileUpdate, onPasswordChange }: Pr
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <Card>
-        <CardHeader><CardTitle>Perfil Público</CardTitle><CardDescription>Esta información será visible para los pacientes.</CardDescription></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-base md:text-2xl">Perfil Público</CardTitle>
+          <CardDescription className="text-xs md:text-base">Esta información será visible para los pacientes.</CardDescription>
+        </CardHeader>
         <form onSubmit={handleSaveProfile}>
-          <CardContent className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2"><Label htmlFor="name">Nombre Completo</Label><Input id="name" name="name" defaultValue={doctorData.name} /></div>
-              <div className="space-y-2"><Label htmlFor="cedula">Cédula</Label><Input id="cedula" name="cedula" defaultValue={doctorData.cedula} /></div>
+          <CardContent className="space-y-4 md:space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+              <div className="space-y-1 md:space-y-2"><Label htmlFor="name" className="text-xs md:text-sm">Nombre Completo</Label><Input id="name" name="name" defaultValue={doctorData.name} className="h-9 md:h-10 text-xs md:text-sm" /></div>
+              <div className="space-y-1 md:space-y-2"><Label htmlFor="cedula" className="text-xs md:text-sm">Cédula</Label><Input id="cedula" name="cedula" defaultValue={doctorData.cedula} className="h-9 md:h-10 text-xs md:text-sm" /></div>
             </div>
-            <div className="space-y-2"><Label htmlFor="whatsapp">Nro. WhatsApp</Label><Input id="whatsapp" name="whatsapp" defaultValue={doctorData.whatsapp} /></div>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2"><Label htmlFor="address">Dirección</Label><Input id="address" name="address" defaultValue={doctorData.address} /></div>
-              <div className="space-y-2"><Label htmlFor="sector">Sector</Label><Input id="sector" name="sector" defaultValue={doctorData.sector} /></div>
+            <div className="space-y-1 md:space-y-2"><Label htmlFor="whatsapp" className="text-xs md:text-sm">Nro. WhatsApp</Label><Input id="whatsapp" name="whatsapp" defaultValue={doctorData.whatsapp} className="h-9 md:h-10 text-xs md:text-sm" /></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+              <div className="space-y-1 md:space-y-2"><Label htmlFor="address" className="text-xs md:text-sm">Dirección</Label><Input id="address" name="address" defaultValue={doctorData.address} className="h-9 md:h-10 text-xs md:text-sm" /></div>
+              <div className="space-y-1 md:space-y-2"><Label htmlFor="sector" className="text-xs md:text-sm">Sector</Label><Input id="sector" name="sector" defaultValue={doctorData.sector} className="h-9 md:h-10 text-xs md:text-sm" /></div>
             </div>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2"><Label htmlFor="consultationFee">Tarifa Consulta ($)</Label><Input id="consultationFee" name="consultationFee" type="number" defaultValue={doctorData.consultationFee} /></div>
-              <div className="space-y-2"><Label htmlFor="slotDuration">Duración Cita (min)</Label><Input id="slotDuration" name="slotDuration" type="number" defaultValue={doctorData.slotDuration} /></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+              <div className="space-y-1 md:space-y-2"><Label htmlFor="consultationFee" className="text-xs md:text-sm">Tarifa Consulta ($)</Label><Input id="consultationFee" name="consultationFee" type="number" defaultValue={doctorData.consultationFee} className="h-9 md:h-10 text-xs md:text-sm" /></div>
+              <div className="space-y-1 md:space-y-2"><Label htmlFor="slotDuration" className="text-xs md:text-sm">Duración Cita (min)</Label><Input id="slotDuration" name="slotDuration" type="number" defaultValue={doctorData.slotDuration} className="h-9 md:h-10 text-xs md:text-sm" /></div>
             </div>
-            <div className="space-y-2"><Label htmlFor="description">Descripción Profesional</Label><Textarea id="description" name="description" defaultValue={doctorData.description} rows={5}/></div>
-            <div className="grid md:grid-cols-2 gap-8">
-              <div className="space-y-2"><Label>Foto de Perfil</Label><Image src={profileImageFile ? URL.createObjectURL(profileImageFile) : doctorData.profileImage} alt="Perfil" width={100} height={100} className="rounded-full border" /><Input type="file" onChange={(e) => setProfileImageFile(e.target.files?.[0] || null)} /></div>
-              <div className="space-y-2"><Label>Imagen de Banner</Label><Image src={bannerImageFile ? URL.createObjectURL(bannerImageFile) : doctorData.bannerImage} alt="Banner" width={300} height={100} className="rounded-md border aspect-video object-cover" /><Input type="file" onChange={(e) => setBannerImageFile(e.target.files?.[0] || null)} /></div>
+            <div className="space-y-1 md:space-y-2"><Label htmlFor="description" className="text-xs md:text-sm">Descripción Profesional</Label><Textarea id="description" name="description" defaultValue={doctorData.description} rows={4} className="text-xs md:text-sm"/></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+              <div className="space-y-1 md:space-y-2"><Label className="text-xs md:text-sm">Foto de Perfil</Label><Image src={profileImageFile ? URL.createObjectURL(profileImageFile) : doctorData.profileImage} alt="Perfil" width={80} height={80} className="rounded-full border w-20 h-20 md:w-[100px] md:h-[100px] object-cover" /><Input type="file" onChange={(e) => setProfileImageFile(e.target.files?.[0] || null)} className="text-xs md:text-sm" /></div>
+              <div className="space-y-1 md:space-y-2"><Label className="text-xs md:text-sm">Imagen de Banner</Label><Image src={bannerImageFile ? URL.createObjectURL(bannerImageFile) : doctorData.bannerImage} alt="Banner" width={200} height={60} className="rounded-md border aspect-video object-cover w-full max-w-xs md:max-w-full" /><Input type="file" onChange={(e) => setBannerImageFile(e.target.files?.[0] || null)} className="text-xs md:text-sm" /></div>
             </div>
           </CardContent>
-          <CardFooter><Button type="submit">Guardar Perfil</Button></CardFooter>
+          <CardFooter><Button type="submit" className="w-full md:w-auto">Guardar Perfil</Button></CardFooter>
         </form>
       </Card>
       <Card>
-        <CardHeader><CardTitle>Seguridad</CardTitle><CardDescription>Cambia tu contraseña.</CardDescription></CardHeader>
-        <CardContent><Button onClick={() => onPasswordChange('', '')}>Cambiar Contraseña</Button></CardContent>
+        <CardHeader><CardTitle className="text-base md:text-2xl">Seguridad</CardTitle><CardDescription className="text-xs md:text-base">Cambia tu contraseña.</CardDescription></CardHeader>
+        <CardContent>
+          <Button onClick={onOpenPasswordDialog} className="w-full md:w-auto">Cambiar Contraseña</Button>
+        </CardContent>
       </Card>
     </div>
   );

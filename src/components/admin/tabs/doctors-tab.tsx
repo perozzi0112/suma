@@ -174,7 +174,7 @@ export function DoctorsTab() {
                 sunday: { active: false, slots: [] },
             },
             status: 'active',
-            lastPaymentDate: getCurrentDateInVenezuela(),
+            lastPaymentDate: '',
             whatsapp: '',
             lat: 0,
             lng: 0,

@@ -32,6 +32,7 @@ export function DoctorReviews({ doctor, onReviewAdded }: DoctorReviewsProps) {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showAll, setShowAll] = useState(false);
 
   const isPatient = user?.role === 'patient';
   const hasReviewed = reviews.some(review => review.patientId === user?.id);
@@ -262,7 +263,7 @@ export function DoctorReviews({ doctor, onReviewAdded }: DoctorReviewsProps) {
             )}
           </div>
         ) : (
-          reviews.slice(0, 5).map((review) => (
+          (showAll ? reviews : reviews.slice(0, 3)).map((review) => (
             <div key={review.id} className="flex items-start gap-3 p-3 rounded-lg border bg-card">
               <Avatar className="h-8 w-8 flex-shrink-0">
                 <AvatarImage src={review.patientProfileImage || undefined} />
@@ -332,11 +333,21 @@ export function DoctorReviews({ doctor, onReviewAdded }: DoctorReviewsProps) {
           ))
         )}
         
-        {reviews.length > 5 && (
+        {reviews.length > 3 && !showAll && (
           <div className="text-center pt-2">
-            <p className="text-xs text-muted-foreground">
-              Mostrando 5 de {reviews.length} valoraciones
+            <Button variant="outline" size="sm" onClick={() => setShowAll(true)}>
+              Ver más valoraciones
+            </Button>
+            <p className="text-xs text-muted-foreground mt-1">
+              Mostrando 3 de {reviews.length} valoraciones
             </p>
+          </div>
+        )}
+        {reviews.length > 3 && showAll && (
+          <div className="text-center pt-2">
+            <Button variant="ghost" size="sm" onClick={() => setShowAll(false)}>
+              Ver menos
+            </Button>
           </div>
         )}
       </div>
