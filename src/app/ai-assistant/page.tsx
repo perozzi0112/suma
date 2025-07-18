@@ -61,7 +61,7 @@ export default function AiAssistantPage() {
         text: output.response,
       };
       setMessages((prev) => [...prev, assistantMessage]);
-    } catch (err) {
+    } catch {
       const errorMessage: Message = {
         sender: 'assistant',
         text: "Lo siento, no pude procesar tu solicitud en este momento. Por favor, inténtalo de nuevo más tarde."
@@ -70,8 +70,7 @@ export default function AiAssistantPage() {
       toast({
         variant: "destructive",
         title: "Ocurrió un Error",
-        description:
-          err instanceof Error ? err.message : "Ocurrió un error desconocido.",
+        description: "No se pudo completar la acción. Intenta de nuevo.",
       });
     } finally {
       setIsLoading(false);

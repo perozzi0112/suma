@@ -43,6 +43,9 @@ import {
   Users,
   Zap,
   ChevronRight,
+  List as ListIcon,
+  Grid as GridIcon,
+  LayoutGrid as GridCompactIcon,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -62,6 +65,7 @@ import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { doctors as mockDoctors } from "@/lib/data";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
+import Image from 'next/image';
 
 const specialtyIcons: Record<string, React.ElementType> = {
   Cardiología: HeartPulse,
@@ -109,6 +113,16 @@ export default function FindDoctorPage() {
   const [filteredDoctors, setFilteredDoctors] = useState<Doctor[]>([]);
   const [showAllSpecialties, setShowAllSpecialties] = useState(false);
   const [initialLocationSet, setInitialLocationSet] = useState(false);
+  const [mobileViewMode, setMobileViewMode] = useState<'card' | 'list' | 'grid-compact'>('card');
+
+  // Alternar entre las tres vistas
+  const handleToggleMobileView = () => {
+    setMobileViewMode((prev) => {
+      if (prev === 'card') return 'list';
+      if (prev === 'list') return 'grid-compact';
+      return 'card';
+    });
+  };
 
   // Debounce para la búsqueda de texto
   useEffect(() => {
@@ -792,10 +806,7 @@ export default function FindDoctorPage() {
                   <div className="flex items-center gap-2 md:gap-4 text-muted-foreground text-sm">
                     <span className="flex items-center gap-1 md:gap-2">
                       <Users className="h-3 w-3 md:h-4 md:w-4" />
-                    {filteredDoctors.length}{" "}
-                    {filteredDoctors.length === 1
-                      ? "médico encontrado"
-                      : "médicos encontrados"}
+                    {filteredDoctors.length} {filteredDoctors.length === 1 ? "médico encontrado" : "médicos encontrados"}
                     </span>
                     {filteredDoctors.length > 0 && (
                       <span className="flex items-center gap-1 md:gap-2">
@@ -816,14 +827,68 @@ export default function FindDoctorPage() {
                       </span>
                     )}
                   </div>
+                  {/* Botón de alternar vista solo en móvil */}
+                  <div className="flex md:hidden justify-end mt-2">
+                    <button
+                      type="button"
+                      className="rounded-full p-2 bg-muted border hover:bg-primary/10 transition-colors"
+                      onClick={handleToggleMobileView}
+                      aria-label="Alternar vista"
+                    >
+                      {mobileViewMode === 'card' && <ListIcon className="h-5 w-5" />}
+                      {mobileViewMode === 'list' && <GridCompactIcon className="h-5 w-5" />}
+                      {mobileViewMode === 'grid-compact' && <GridIcon className="h-5 w-5" />}
+                    </button>
+                  </div>
                 </div>
 
                 {filteredDoctors.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                    {filteredDoctors.map((doctor) => (
-                      <DoctorCard key={doctor.id} doctor={doctor} />
-                    ))}
-                  </div>
+                  <>
+                    {/* Vista de tarjetas (por defecto) */}
+                    <div className={mobileViewMode === 'card' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6' : 'hidden md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6'}>
+                      {filteredDoctors.map((doctor) => (
+                        <DoctorCard key={doctor.id} doctor={doctor} />
+                      ))}
+                    </div>
+                    {/* Vista compacta solo en móvil */}
+                    <div className={mobileViewMode === 'list' ? 'flex flex-col gap-2 md:hidden' : 'hidden'}>
+                      {filteredDoctors.map((doctor) => (
+                        <button
+                          key={doctor.id}
+                          className="flex items-center justify-between bg-white border rounded-lg px-3 py-2 shadow-sm hover:bg-primary/5 transition-colors"
+                          onClick={() => window.location.href = `/doctors/${doctor.id}`}
+                        >
+                          <div className="flex flex-col items-start text-left">
+                            <span className="font-semibold text-base leading-tight">{doctor.name}</span>
+                            <span className="text-xs text-primary font-medium">{doctor.specialty}</span>
+                            <span className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" />{doctor.city}</span>
+                          </div>
+                          <div className="flex flex-col items-end">
+                            <span className="flex items-center gap-1 text-xs"><Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />{doctor.rating}</span>
+                            <span className="text-[10px] text-muted-foreground">{doctor.reviewCount} reseñas</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                    {/* Vista grid-compacta solo en móvil/tablet */}
+                    <div className={mobileViewMode === 'grid-compact' ? 'grid grid-cols-2 sm:grid-cols-3 gap-2 md:hidden' : 'hidden'}>
+                      {filteredDoctors.map((doctor) => (
+                        <button
+                          key={doctor.id}
+                          className="flex flex-col items-center justify-between bg-white border rounded-lg px-2 py-3 shadow-sm hover:bg-primary/5 transition-colors min-h-[120px]"
+                          onClick={() => window.location.href = `/doctors/${doctor.id}`}
+                        >
+                          <div className="w-14 h-14 mb-2 relative">
+                            <Image src={doctor.profileImage} alt={doctor.name} fill className="rounded-full object-cover w-full h-full border" />
+                          </div>
+                          <span className="font-semibold text-xs text-center leading-tight line-clamp-2">{doctor.name}</span>
+                          <span className="text-[10px] text-primary font-medium text-center line-clamp-1">{doctor.specialty}</span>
+                          <span className="text-[10px] text-muted-foreground flex items-center gap-1 justify-center"><MapPin className="h-3 w-3" />{doctor.city}</span>
+                          <span className="flex items-center gap-1 text-[10px] justify-center"><Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />{doctor.rating}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
                 ) : (
                   <div className="text-center py-12 md:py-20 bg-muted/30 rounded-lg border-2 border-dashed">
                     <Search className="h-12 w-12 md:h-16 md:w-16 text-muted-foreground mx-auto mb-4" />

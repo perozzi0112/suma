@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from '@/lib/auth';
 import { HeaderWrapper } from '@/components/header';
 import * as firestoreService from '@/lib/firestoreService';
 import type { Appointment, Doctor, Service, BankDetail, Coupon, Expense, AdminSupportTicket, DoctorPayment } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, Loader2, MessageCircle, CreditCard, Send, AlertCircle, Info } from 'lucide-react';
+import { CheckCircle, Loader2, MessageCircle, CreditCard, Send, AlertCircle, Info, ArrowDown } from 'lucide-react';
 import { useSettings } from '@/lib/settings';
 import { useDoctorNotifications } from '@/lib/doctor-notifications';
 import { useChatNotifications } from '@/lib/chat-notifications';
@@ -147,6 +147,9 @@ export function DoctorDashboardClient({ currentTab }: { currentTab: string }) {
     const [isSendingMessage, setIsSendingMessage] = useState(false);
     const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
     const [isReportingPayment, setIsReportingPayment] = useState(false);
+    
+    // Referencia para el scroll automático en el chat
+    const chatEndRef = useRef<HTMLDivElement | null>(null);
 
     // Función para recargar los datos principales del dashboard
     const fetchData = useCallback(async () => {
@@ -428,6 +431,12 @@ ID Transacción: ${transactionId}`;
         }
     };
 
+    useEffect(() => {
+        if (isChatOpen && chatEndRef.current) {
+            chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [isChatOpen, selectedAppointment?.messages]);
+
     if (loading || isLoadingData || !user || !doctorData) {
         return <DashboardLoading />;
     }
@@ -458,7 +467,7 @@ ID Transacción: ${transactionId}`;
                         {currentTab === "coupons" && <CouponsTab coupons={doctorData.coupons || []} onOpenDialog={(c) => {setEditingCoupon(c); setIsCouponDialogOpen(true);}} onDeleteItem={(type, id) => {setItemToDelete({type, id}); setIsDeleteDialogOpen(true);}}/>}
                         {currentTab === "chat" && <ChatTab appointments={appointments} onOpenChat={(appointment) => handleOpenAppointmentDialog('chat', appointment)} />}
                         {currentTab === "support" && <SupportTab supportTickets={supportTickets} onViewTicket={(t) => {setSelectedSupportTicket(t); setIsSupportDetailOpen(true);}} onOpenTicketDialog={() => setIsSupportDialogOpen(true)} onCreateTestTickets={handleCreateTestTickets} />}
-                    </div>
+                        </div>
                 </div>
             </main>
             
@@ -474,16 +483,31 @@ ID Transacción: ${transactionId}`;
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader><DialogTitle>Chat con {selectedAppointment?.patientName}</DialogTitle></DialogHeader>
                     <div className="p-4 h-96 flex flex-col gap-4 bg-muted/50 rounded-lg">
-                        <div className="flex-1 space-y-4 overflow-y-auto pr-2">
-                            {(selectedAppointment?.messages || []).map((msg) => (
-                                <div key={msg.id} className={cn("flex items-end gap-2", msg.sender === 'doctor' && 'justify-end')}>
+                        <div className="flex-1 space-y-4 overflow-y-auto pr-2 relative">
+                            {(selectedAppointment?.messages || []).map((msg, idx, arr) => {
+                                const isLast = idx === arr.length - 1;
+                                return (
+                                    <div key={msg.id} ref={isLast ? chatEndRef : undefined} className={cn("flex items-end gap-2", msg.sender === 'doctor' && 'justify-end')}>
                                     {msg.sender === 'patient' && <Avatar className="h-8 w-8"><AvatarFallback>{selectedAppointment?.patientName?.charAt(0)}</AvatarFallback></Avatar>}
                                     <div className={cn("p-3 rounded-lg max-w-xs shadow-sm", msg.sender === 'doctor' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-background rounded-bl-none')}>
                                         <p className="text-sm">{msg.text}</p><p className="text-xs text-right mt-1 opacity-70">{formatDistanceToNow(parseISO(msg.timestamp), { locale: es, addSuffix: true })}</p>
                                     </div>
                                     {msg.sender === 'doctor' && <Avatar className="h-8 w-8"><AvatarImage src={doctorData.profileImage} /><AvatarFallback>{doctorData.name.charAt(0)}</AvatarFallback></Avatar>}
                                 </div>
-                            ))}
+                                );
+                            })}
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (chatEndRef.current) {
+                                        chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+                                    }
+                                }}
+                                className="absolute bottom-2 right-2 bg-primary text-primary-foreground rounded-full p-2 shadow-lg hover:bg-primary/80 focus:outline-none"
+                                aria-label="Ir al último mensaje"
+                            >
+                                <ArrowDown className="h-5 w-5" />
+                            </button>
                         </div>
                         <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="flex items-center gap-2">
                             <Input placeholder="Escribe tu mensaje..." className="flex-1" value={chatMessage} onChange={(e) => setChatMessage(e.target.value)} disabled={isSendingMessage}/>

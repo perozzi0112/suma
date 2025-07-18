@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { rateLimit } from '../_rate-limit';
+import { saveAuditLog } from '../_audit-log';
 
 // Función para inicializar Firebase Admin solo cuando sea necesario
 function initializeFirebaseAdmin() {
@@ -40,6 +42,21 @@ function getFirestoreSafely() {
 }
 
 export async function POST(request: NextRequest) {
+  // Rate limiting combinado
+  const ip = request.headers.get('x-forwarded-for') || 'unknown';
+  const userId = request.headers.get('x-user-id') || 'anon';
+  const key = `fcm:${userId}:${ip}`;
+  if (!rateLimit(key)) {
+    return NextResponse.json({ error: 'Demasiadas peticiones, intenta más tarde.' }, { status: 429 });
+  }
+
+  // Validar autenticación
+  const headerUserId = request.headers.get('x-user-id');
+  const { fcmToken } = await request.json();
+  if (!headerUserId || headerUserId !== userId) {
+    return NextResponse.json({ error: 'No autorizado para actualizar este token' }, { status: 403 });
+  }
+
   try {
     const db = getFirestoreSafely();
     
@@ -50,8 +67,6 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-
-    const { userId, fcmToken } = await request.json();
 
     console.log('🔑 Actualizando token FCM para usuario:', userId);
 
@@ -68,6 +83,17 @@ export async function POST(request: NextRequest) {
       fcmTokenUpdatedAt: new Date(),
     });
 
+    await saveAuditLog({
+      userId,
+      email: request.headers.get('x-user-email') || '',
+      role: request.headers.get('x-user-role') || '',
+      ip: request.headers.get('x-forwarded-for') || 'unknown',
+      action: 'update-fcm-token',
+      details: { userId },
+      result: 'success',
+      message: 'Token FCM actualizado',
+    });
+
     console.log('✅ Token FCM actualizado exitosamente');
 
     return NextResponse.json({ 
@@ -77,6 +103,16 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('❌ Error al actualizar token FCM:', error);
+    await saveAuditLog({
+      userId: request.headers.get('x-user-id') || 'anon',
+      email: request.headers.get('x-user-email') || '',
+      role: request.headers.get('x-user-role') || '',
+      ip: request.headers.get('x-forwarded-for') || 'unknown',
+      action: 'update-fcm-token',
+      details: {},
+      result: 'error',
+      message: String(error),
+    });
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

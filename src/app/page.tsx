@@ -9,6 +9,7 @@ import { Search, UserCheck, CalendarDays, Bot } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import * as firestoreService from "@/lib/firestoreService";
 import { Skeleton } from "@/components/ui/skeleton";
+import { InstallPwaBanner } from "@/components/install-pwa-banner";
 
 export default function Home() {
   const [heroImageUrl, setHeroImageUrl] = useState<string | null>(null);
@@ -100,6 +101,7 @@ export default function Home() {
         </section>
       </main>
       <BottomNav />
+      <InstallPwaBanner />
     </div>
   );
 }

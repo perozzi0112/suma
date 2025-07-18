@@ -14,6 +14,7 @@ import { MarketingTab } from './tabs/marketing-tab';
 import { SupportTab } from './tabs/support-tab';
 import { SettingsTab } from './tabs/settings-tab';
 import { Skeleton } from '../ui/skeleton';
+import { Button } from '../ui/button';
 
 export function AdminDashboardClient({ currentTab = 'overview' }: { currentTab?: string }) {
   const { user, loading } = useAuth();
@@ -94,6 +95,17 @@ export function AdminDashboardClient({ currentTab = 'overview' }: { currentTab?:
         <p className="text-muted-foreground">
           Gestiona tu plataforma médica desde aquí.
         </p>
+        <div className="mt-6 flex flex-wrap gap-2">
+          <Button variant={currentTab === 'overview' ? 'default' : 'outline'} onClick={() => router.push('/admin/dashboard?view=overview')}>Resumen</Button>
+          <Button variant={currentTab === 'doctors' ? 'default' : 'outline'} onClick={() => router.push('/admin/dashboard?view=doctors')}>Médicos</Button>
+          <Button variant={currentTab === 'sellers' ? 'default' : 'outline'} onClick={() => router.push('/admin/dashboard?view=sellers')}>Vendedoras</Button>
+          <Button variant={currentTab === 'patients' ? 'default' : 'outline'} onClick={() => router.push('/admin/dashboard?view=patients')}>Pacientes</Button>
+          <Button variant={currentTab === 'finances' ? 'default' : 'outline'} onClick={() => router.push('/admin/dashboard?view=finances')}>Finanzas</Button>
+          <Button variant={currentTab === 'marketing' ? 'default' : 'outline'} onClick={() => router.push('/admin/dashboard?view=marketing')}>Marketing</Button>
+          <Button variant={currentTab === 'support' ? 'default' : 'outline'} onClick={() => router.push('/admin/dashboard?view=support')}>Soporte</Button>
+          <Button variant={currentTab === 'settings' ? 'default' : 'outline'} onClick={() => router.push('/admin/dashboard?view=settings')}>Configuración</Button>
+          <Button variant={currentTab === 'audit' ? 'default' : 'outline'} onClick={() => router.push('/admin/dashboard?view=audit')}>Historial</Button>
+        </div>
       </div>
       
       {renderContent()}

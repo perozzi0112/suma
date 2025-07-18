@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 import { HeaderWrapper } from '@/components/header';
@@ -38,9 +38,14 @@ export default function PasswordMigrationPage() {
     lastMigration: null,
   });
 
-  // Verificar que solo los administradores puedan acceder
+  // Redirección segura solo para administradores
+  useEffect(() => {
+    if (!user || user.role !== 'admin') {
+      router.push('/auth/login');
+    }
+  }, [user, router]);
+
   if (!user || user.role !== 'admin') {
-    router.push('/auth/login');
     return null;
   }
 

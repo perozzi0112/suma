@@ -2,12 +2,12 @@
 "use client";
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CalendarPlus, ClipboardList, User, Edit, CalendarDays, Clock, ThumbsUp, CalendarX, CheckCircle, XCircle, MessageSquare, Send, Loader2, FileText, MapPin, Star, Stethoscope, RefreshCw, Search, Filter } from 'lucide-react';
+import { CalendarPlus, ClipboardList, User, Edit, CalendarDays, Clock, ThumbsUp, CalendarX, CheckCircle, XCircle, MessageSquare, Send, Loader2, FileText, MapPin, Star, Stethoscope, RefreshCw, Search, Filter, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/auth';
+import type { Patient } from '@/lib/types';
 import { useAppointments } from '@/lib/appointments';
 import { useNotifications } from '@/lib/notifications';
 import { useChatNotifications } from '@/lib/chat-notifications';
@@ -181,7 +182,7 @@ function AppointmentCard({
 
 
 export default function DashboardPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, updateUser } = useAuth();
   const { appointments, updateAppointmentConfirmation, refreshAppointments } = useAppointments();
   const { checkAndSetNotifications } = useNotifications();
   const { updateUnreadChatCount } = useChatNotifications();
@@ -207,45 +208,63 @@ export default function DashboardPage() {
 
   // Estado para el modal de bienvenida
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
+
+  // Eliminar el useEffect de refresco de usuario para restaurar el flujo básico
 
   useEffect(() => {
-    const fetchDoctors = async () => {
-        setIsDoctorsLoading(true);
-        try {
-            const doctorsData = await firestoreService.getDoctors();
-            setAllDoctors(doctorsData);
-        } catch {
-            console.error("Failed to fetch doctors for dashboard, possibly offline.");
-            toast({
-                variant: "destructive",
-                title: "Error de red",
-                description: "No se pudieron cargar los datos de los médicos.",
-            });
-        } finally {
-            setIsDoctorsLoading(false);
+    if (isChatDialogOpen && chatEndRef.current) {
+      setTimeout(() => {
+        if (chatEndRef.current) {
+          chatEndRef.current.scrollIntoView({ behavior: 'auto' });
+          console.log('Scroll ejecutado', chatEndRef.current);
         }
+      }, 200);
     }
-    fetchDoctors();
-  }, [toast]);
+  }, [isChatDialogOpen, selectedChatAppointment?.messages?.length]);
 
   useEffect(() => {
     if (!authLoading && (!user || user.role !== 'patient')) {
-        router.push('/auth/login');
-    } else if (user?.role === 'doctor') {
-        router.push('/doctor/dashboard');
-    } else if (user?.role === 'seller') {
-        router.push('/seller/dashboard');
-    } else if (user?.role === 'admin') {
-        router.push('/admin/dashboard');
+      if (!user) router.push('/auth/login');
+      else if (user.role === 'admin') router.push('/admin/dashboard');
+      else if (user.role === 'doctor') router.push('/doctor/dashboard');
+      else if (user.role === 'seller') router.push('/seller/dashboard');
     }
   }, [user, authLoading, router]);
 
-  // Mostrar modal de bienvenida para pacientes nuevos
+  // Mostrar modal de bienvenida si profileCompleted es false o undefined
   useEffect(() => {
-    if (user?.role === 'patient' && user.profileCompleted === false) {
-      setShowWelcomeModal(true);
+    if (!authLoading && user?.role === 'patient') {
+      const patient = user as Patient;
+      if (patient.profileCompleted === false || patient.profileCompleted === undefined) {
+        setShowWelcomeModal(true);
+      } else {
+        setShowWelcomeModal(false);
+      }
+    } else if (!authLoading) {
+      setShowWelcomeModal(false);
     }
-  }, [user]);
+  }, [user, authLoading]);
+
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      setIsDoctorsLoading(true);
+      try {
+        const doctorsData = await firestoreService.getDoctors();
+        setAllDoctors(doctorsData);
+      } catch {
+        console.error("Failed to fetch doctors for dashboard, possibly offline.");
+        toast({
+          variant: "destructive",
+          title: "Error de red",
+          description: "No se pudieron cargar los datos de los médicos.",
+        });
+      } finally {
+        setIsDoctorsLoading(false);
+      }
+    };
+    fetchDoctors();
+  }, [toast]);
 
   const { upcomingAppointments } = useMemo(() => {
     if (!user?.email) return { 
@@ -360,13 +379,19 @@ export default function DashboardPage() {
     }
   };
 
+  const handleScrollToEnd = () => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
 
   if (authLoading || isDoctorsLoading || !user || user.role !== 'patient') {
     return (
-       <div className="flex flex-col min-h-screen">
+       <div className="flex flex-col min-h-screen bg-background">
         <HeaderWrapper />
-        <main className="flex-1 container py-12 flex items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <main className="flex-1 flex items-center justify-center">
+            <p>Cargando...</p>
         </main>
       </div>
     );
@@ -560,9 +585,15 @@ export default function DashboardPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="p-4 h-96 flex flex-col gap-4 bg-muted/50 rounded-lg">
-            <div className="flex-1 space-y-4 overflow-y-auto pr-2">
-              {(selectedChatAppointment?.messages || []).map((msg) => (
-                <div key={msg.id} className={cn("flex items-end gap-2", msg.sender === 'patient' && 'justify-end')}>
+            <div className="flex-1 space-y-4 overflow-y-auto pr-2 relative">
+              {(selectedChatAppointment?.messages || []).map((msg, idx, arr) => {
+                const isLast = idx === arr.length - 1;
+                return (
+                  <div
+                    key={msg.id}
+                    ref={isLast ? chatEndRef : undefined}
+                    className={cn("flex items-end gap-2", msg.sender === 'patient' && 'justify-end')}
+                  >
                     {msg.sender === 'doctor' && (
                         <Avatar className="h-8 w-8">
                             <AvatarImage src={selectedChatDoctor?.profileImage} />
@@ -579,8 +610,17 @@ export default function DashboardPage() {
                             <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                         </Avatar>
                     )}
-                </div>
-              ))}
+                  </div>
+                );
+              })}
+              <button
+                type="button"
+                onClick={handleScrollToEnd}
+                className="absolute bottom-2 right-2 bg-primary text-primary-foreground rounded-full p-2 shadow-lg hover:bg-primary/80 focus:outline-none"
+                aria-label="Ir al último mensaje"
+              >
+                <ArrowDown className="h-5 w-5" />
+              </button>
             </div>
             <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="flex items-center gap-2">
               <Input 
@@ -638,10 +678,23 @@ export default function DashboardPage() {
       </Dialog>
 
       {/* Welcome Modal para pacientes nuevos */}
-      <WelcomeModal 
-        isOpen={showWelcomeModal} 
-        onClose={() => setShowWelcomeModal(false)} 
-      />
+      {showWelcomeModal && (
+    <WelcomeModal
+      isOpen={showWelcomeModal}
+      onClose={async () => {
+        setShowWelcomeModal(false);
+        // Refrescar usuario desde Firestore tras cerrar el modal
+        if (user?.email) {
+          const freshUser = await firestoreService.findUserByEmail(user.email);
+          if (freshUser) {
+            // Actualiza el contexto y localStorage
+            await updateUser({ ...freshUser });
+            localStorage.setItem('user', JSON.stringify(freshUser));
+          }
+        }
+      }}
+    />
+  )}
 
     </div>
   );

@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import * as firestoreService from '@/lib/firestoreService';
-import { Eye, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { Eye, Pencil, Trash2, Loader2, Search } from 'lucide-react';
 import { z } from 'zod';
 import { cn } from "@/lib/utils";
 import { hashPassword } from '@/lib/password-utils';
@@ -33,6 +33,7 @@ export function PatientsTab() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const [isPatientDetailDialogOpen, setIsPatientDetailDialogOpen] = useState(false);
   const [selectedPatientForDetail, setSelectedPatientForDetail] = useState<Patient | null>(null);
@@ -137,6 +138,17 @@ export function PatientsTab() {
   if (isLoading) {
     return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
+
+  // Filtrar pacientes basado en el término de búsqueda
+  const filteredPatients = patients.filter(patient => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      patient.name.toLowerCase().includes(searchLower) ||
+      patient.email.toLowerCase().includes(searchLower) ||
+      (patient.cedula && patient.cedula.toLowerCase().includes(searchLower)) ||
+      (patient.phone && patient.phone.toLowerCase().includes(searchLower))
+    );
+  });
   
   return (
     <>
@@ -146,6 +158,24 @@ export function PatientsTab() {
           <CardDescription>Busca y gestiona la información de los pacientes registrados.</CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Buscador */}
+          <div className="mb-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar pacientes por nombre, email, cédula o teléfono..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            {searchTerm && (
+              <p className="text-sm text-muted-foreground mt-2">
+                Mostrando {filteredPatients.length} de {patients.length} pacientes
+              </p>
+            )}
+          </div>
+
            <div className="hidden md:block">
               <Table>
                   <TableHeader>
@@ -155,7 +185,7 @@ export function PatientsTab() {
                       </TableRow>
                   </TableHeader>
                   <TableBody>
-                      {patients.map((patient) => (
+                      {filteredPatients.map((patient) => (
                           <TableRow key={patient.id}>
                               <TableCell className="font-medium">{patient.name}</TableCell>
                               <TableCell>{patient.cedula || 'N/A'}</TableCell>
@@ -171,7 +201,7 @@ export function PatientsTab() {
               </Table>
            </div>
             <div className="space-y-4 md:hidden">
-                  {patients.map((patient) => (
+                  {filteredPatients.map((patient) => (
                       <div key={patient.id} className="p-4 border rounded-lg space-y-3">
                           <div><p className="font-semibold">{patient.name}</p><p className="text-xs text-muted-foreground">{patient.email}</p></div>
                           <div className="grid grid-cols-2 gap-4 text-sm">
@@ -186,7 +216,11 @@ export function PatientsTab() {
                           </div>
                       </div>
                   ))}
-                  {patients.length === 0 && <p className="text-center text-muted-foreground py-8">No hay pacientes registrados.</p>}
+                  {filteredPatients.length === 0 && (
+                    <p className="text-center text-muted-foreground py-8">
+                      {searchTerm ? 'No se encontraron pacientes con ese criterio de búsqueda.' : 'No hay pacientes registrados.'}
+                    </p>
+                  )}
               </div>
         </CardContent>
       </Card>

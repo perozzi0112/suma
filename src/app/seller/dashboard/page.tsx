@@ -1,10 +1,12 @@
 "use client";
 
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { SellerDashboardClient } from '@/components/seller/dashboard-client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { HeaderWrapper } from '@/components/header';
+import { useAuth } from '@/lib/auth';
+import { useRouter } from 'next/navigation';
 
 function DashboardLoading() {
     return (
@@ -31,6 +33,22 @@ function DashboardLoading() {
 function SellerDashboardPage() {
     const searchParams = useSearchParams();
     const currentTab = searchParams.get('view') || 'referrals';
+    const { user, loading } = useAuth();
+    const router = useRouter();
+
+    useEffect(() => {
+      if (!loading && (!user || user.role !== 'seller')) {
+        if (!user) router.push('/auth/login');
+        else if (user.role === 'admin') router.push('/admin/dashboard');
+        else if (user.role === 'doctor') router.push('/doctor/dashboard');
+        else router.push('/dashboard');
+      }
+    }, [user, loading, router]);
+
+    if (loading || !user || user.role !== 'seller') {
+      return <DashboardLoading />;
+    }
+
     return <SellerDashboardClient currentTab={currentTab} />;
 }
 

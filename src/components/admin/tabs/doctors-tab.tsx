@@ -14,11 +14,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import * as firestoreService from '@/lib/firestoreService';
-import { Loader2, User, Pencil, Trash2 } from 'lucide-react';
+import { Loader2, User, Pencil, Trash2, Search, History } from 'lucide-react';
 import { z } from 'zod';
 import { cn } from "@/lib/utils";
 import { useSettings } from "@/lib/settings";
 import { getCurrentDateInVenezuela, getPaymentDateInVenezuela } from '@/lib/utils';
+import { getDoctorInactivationLogs } from '@/lib/firestoreService';
 
 
 const DoctorFormSchema = z.object({
@@ -34,6 +35,16 @@ const DoctorFormSchema = z.object({
   consultationFee: z.preprocess((val) => Number(val), z.number().min(0, "La tarifa de consulta no puede ser negativa.")),
 });
 
+// Definir el tipo para los logs de inactivación
+interface InactivationLog {
+  id: string;
+  doctorId: string;
+  doctorName: string;
+  inactivatedAt?: { seconds: number };
+  reason: string;
+  origin: string;
+}
+
 export function DoctorsTab() {
   const { toast } = useToast();
   const { specialties, cities } = useSettings();
@@ -41,6 +52,7 @@ export function DoctorsTab() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const [isDoctorDialogOpen, setIsDoctorDialogOpen] = useState(false);
   const [editingDoctor, setEditingDoctor] = useState<Doctor | null>(null);
@@ -48,6 +60,10 @@ export function DoctorsTab() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<Doctor | null>(null);
   
+  const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
+  const [historyLogs, setHistoryLogs] = useState<InactivationLog[]>([]);
+  const [historyDoctor, setHistoryDoctor] = useState<Doctor | null>(null);
+
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -197,6 +213,37 @@ export function DoctorsTab() {
     return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 
+  // Filtrar médicos basado en el término de búsqueda
+  const filteredDoctors = doctors.filter(doctor => {
+    const searchLower = searchTerm.toLowerCase();
+    const assignedSeller = sellers.find(s => s.id === doctor.sellerId);
+    return (
+      doctor.name.toLowerCase().includes(searchLower) ||
+      doctor.email.toLowerCase().includes(searchLower) ||
+      doctor.specialty.toLowerCase().includes(searchLower) ||
+      doctor.city.toLowerCase().includes(searchLower) ||
+      (assignedSeller && assignedSeller.name.toLowerCase().includes(searchLower))
+    );
+  });
+
+  const openHistoryDialog = async (doctor: Doctor) => {
+    setHistoryDoctor(doctor);
+    setIsHistoryDialogOpen(true);
+    const logsRaw = await getDoctorInactivationLogs(doctor.id);
+    const logs: InactivationLog[] = logsRaw.map((log: unknown) => {
+      const l = log as Partial<InactivationLog>;
+      return {
+        id: l.id ?? '',
+        doctorId: l.doctorId ?? '',
+        doctorName: l.doctorName ?? '',
+        inactivatedAt: l.inactivatedAt,
+        reason: l.reason ?? '-',
+        origin: l.origin ?? '-',
+      };
+    });
+    setHistoryLogs(logs.sort((a, b) => (b.inactivatedAt?.seconds || 0) - (a.inactivatedAt?.seconds || 0)));
+  };
+
   return (
     <>
       <Card>
@@ -210,11 +257,29 @@ export function DoctorsTab() {
           </Button>
         </CardHeader>
         <CardContent>
+          {/* Buscador */}
+          <div className="mb-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar médicos por nombre, email, especialidad, ciudad o vendedora..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            {searchTerm && (
+              <p className="text-sm text-muted-foreground mt-2">
+                Mostrando {filteredDoctors.length} de {doctors.length} médicos
+              </p>
+            )}
+          </div>
+
            <div className="hidden md:block">
               <Table>
                 <TableHeader><TableRow><TableHead>Médico</TableHead><TableHead>Especialidad</TableHead><TableHead>Ubicación</TableHead><TableHead>Vendedora Asignada</TableHead><TableHead>Estado</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
                 <TableBody>
-                  {doctors.map((doctor) => (
+                  {filteredDoctors.map((doctor) => (
                     <TableRow key={doctor.id}>
                       <TableCell className="font-medium">{doctor.name}</TableCell>
                       <TableCell>{doctor.specialty}</TableCell>
@@ -228,6 +293,11 @@ export function DoctorsTab() {
                       <TableCell className="text-right flex items-center justify-end gap-2">
                         <Button variant="outline" size="icon" onClick={() => { setEditingDoctor(doctor); setIsDoctorDialogOpen(true); }}><Pencil className="h-4 w-4" /></Button>
                         <Button variant="destructive" size="icon" onClick={() => openDeleteDialog(doctor)}><Trash2 className="h-4 w-4" /></Button>
+                        {['inactive', 'inactivo'].includes(doctor.status?.toLowerCase?.()) && (
+                          <Button variant="secondary" size="icon" title="Ver historial de inactivaciones" onClick={() => openHistoryDialog(doctor)}>
+                            <History className="h-4 w-4" />
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -453,6 +523,46 @@ export function DoctorsTab() {
             </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Modal de historial de inactivaciones */}
+      <Dialog open={isHistoryDialogOpen} onOpenChange={setIsHistoryDialogOpen}>
+        <DialogContent className="w-[95vw] max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-lg sm:text-xl">
+              Historial de Inactivaciones
+            </DialogTitle>
+            <DialogDescription className="text-sm sm:text-base">
+              {historyDoctor ? `Dr(a). ${historyDoctor.name}` : ''}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4">
+            {historyLogs.length === 0 ? (
+              <p className="text-muted-foreground text-center">No hay inactivaciones registradas.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Motivo</TableHead>
+                    <TableHead>Origen</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {historyLogs.map(log => (
+                    <TableRow key={log.id}>
+                      <TableCell>{('inactivatedAt' in log && log.inactivatedAt?.seconds)
+  ? new Date(log.inactivatedAt.seconds * 1000).toLocaleString()
+  : '-'}</TableCell>
+                      <TableCell>{log.reason}</TableCell>
+                      <TableCell>{log.origin}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

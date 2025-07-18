@@ -6,10 +6,9 @@ import { useRouter } from 'next/navigation';
 import * as firestoreService from './firestoreService';
 import type { Patient, Doctor, Seller } from './types';
 import { useToast } from '@/hooks/use-toast';
-import { sendPasswordResetEmail } from "firebase/auth";
-import { auth } from './firebase';
 import { getCurrentDateInVenezuela, getPaymentDateInVenezuela } from './utils';
 import { hashPassword, verifyPassword, isPasswordHashed } from './password-utils';
+import { clearUserNotifications } from './clear-notifications';
 
 // The User type represents the logged-in user and must have all Patient properties for consistency across the app.
 interface User extends Patient {
@@ -61,6 +60,7 @@ const buildUserFromData = (userData: (Doctor | Seller | Patient) & { role: 'doct
       city: patientData.city || null,
       favoriteDoctorIds: patientData.favoriteDoctorIds || [],
       profileImage: patientData.profileImage || null,
+      profileCompleted: patientData.profileCompleted ?? false,
     };
   }
 
@@ -156,34 +156,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fetchUserFromStorage();
   }, [fetchUserFromStorage]);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, inputPassword: string) => {
     const lowerEmail = email.toLowerCase();
     
-    // Handle admin login with new credentials
-    if (lowerEmail === 'perozzi0112@gmail.com') {
-      if (password === '..Suma..01') {
-        const adminUser: User = { 
-          id: 'admin-suma-2024', 
-          email: lowerEmail, 
-          name: 'Administrador Suma', 
-          role: 'admin', 
-          age: null, 
-          gender: null,
-          cedula: null, 
-          phone: null, 
-          profileImage: 'https://placehold.co/400x400.png', 
-          favoriteDoctorIds: [], 
-          password: '..Suma..01',
-          city: null
-        };
-        setUser(adminUser);
-        localStorage.setItem('user', JSON.stringify(adminUser));
-        router.push('/admin/dashboard');
-        return;
+    // Nuevo: Login de admin desde Firestore
+    const adminUser = await firestoreService.findAdminByEmail(lowerEmail) as {
+      id: string;
+      email: string;
+      name: string;
+      password: string;
+      profileImage?: string;
+      role: string;
+    } | null;
+    if (adminUser && typeof adminUser.password === 'string') {
+      let passwordValid = false;
+      if (isPasswordHashed(adminUser.password)) {
+        passwordValid = await verifyPassword(inputPassword, adminUser.password);
       } else {
+        passwordValid = adminUser.password === inputPassword;
+      }
+      if (!passwordValid) {
         toast({ variant: 'destructive', title: 'Error de Autenticación', description: 'La contraseña es incorrecta.' });
         return;
       }
+      const adminUserData: User = {
+        id: adminUser.id,
+        email: lowerEmail,
+        name: adminUser.name || 'Administrador',
+        role: 'admin',
+        age: null,
+        gender: null,
+        cedula: null,
+        phone: null,
+        profileImage: adminUser.profileImage || 'https://placehold.co/400x400.png',
+        favoriteDoctorIds: [],
+        password: adminUser.password,
+        city: null
+      };
+      // Eliminar password antes de guardar en localStorage
+      setUser(adminUserData);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password: _1, ...adminUserDataNoPassword } = adminUserData;
+      localStorage.setItem('user', JSON.stringify(adminUserDataNoPassword));
+      router.push('/admin/dashboard');
+      return;
     }
 
     // Handle other user roles
@@ -203,10 +219,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let passwordValid = false;
     if (isPasswordHashed(userToAuth.password)) {
       // Contraseña encriptada
-      passwordValid = await verifyPassword(password, userToAuth.password);
+      passwordValid = await verifyPassword(inputPassword, userToAuth.password);
     } else {
       // Contraseña en texto plano (legacy)
-      passwordValid = userToAuth.password === password;
+      passwordValid = userToAuth.password === inputPassword;
     }
 
     if (!passwordValid) {
@@ -215,8 +231,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const loggedInUser = buildUserFromData(userToAuth);
+    // Eliminar password antes de guardar en localStorage
     setUser(loggedInUser);
-    localStorage.setItem('user', JSON.stringify(loggedInUser));
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: _2, ...loggedInUserNoPassword } = loggedInUser;
+    localStorage.setItem('user', JSON.stringify(loggedInUserNoPassword));
+
+    if (loggedInUser && ['patient', 'doctor', 'seller'].includes(loggedInUser.role)) {
+      clearUserNotifications(loggedInUser.id, loggedInUser.role as 'patient' | 'doctor' | 'seller');
+    }
 
     switch(loggedInUser.role) {
       case 'admin': router.push('/admin/dashboard'); break;
@@ -227,7 +250,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const register = async (name: string, email: string, password: string) => {
-    const existingUser = await firestoreService.findUserByEmail(email);
+    const lowerEmail = email.toLowerCase();
+    const existingUser = await firestoreService.findUserByEmail(lowerEmail);
     if (existingUser) {
       toast({ variant: "destructive", title: "Error de Registro", description: "Este correo electrónico ya está en uso." });
       return;
@@ -238,7 +262,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const newPatientData: Omit<Patient, 'id'> = { 
       name, 
-      email, 
+      email: lowerEmail, 
       password: hashedPassword, 
       age: null, 
       gender: null, 
@@ -247,14 +271,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       phone: null, 
       city: null, 
       favoriteDoctorIds: [],
-      profileCompleted: false // Nuevo flag para indicar que el perfil no está completo
+      profileCompleted: false // Siempre forzar a false
     };
-    const newPatientId = await firestoreService.addPatient(newPatientData);
-    
-    const newUser: User = { id: newPatientId, ...newPatientData, role: 'patient' };
-    setUser(newUser);
-    localStorage.setItem('user', JSON.stringify(newUser));
-    router.push('/dashboard');
+    await firestoreService.addPatient(newPatientData);
+    // Enviar correo de bienvenida
+    try {
+      await fetch('/api/send-welcome-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: lowerEmail, name }),
+      });
+    } catch {
+      // No bloquear el flujo si falla el correo
+    }
+    // Fetch actualizado desde Firestore
+    const freshUser = await firestoreService.findUserByEmail(lowerEmail);
+    if (freshUser) {
+      // Forzar profileCompleted a false si no existe
+      const newUser: User = buildUserFromData({ ...freshUser, profileCompleted: false });
+      setUser(newUser);
+      localStorage.setItem('user', JSON.stringify(newUser));
+      router.push('/dashboard');
+    }
   };
 
   const registerDoctor = async (doctorData: DoctorRegistrationData) => {
@@ -297,14 +335,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
     
     const newDoctorId = await firestoreService.addDoctor(newDoctorData);
-    
-    const loggedInUser = buildUserFromData({ ...newDoctorData, id: newDoctorId, role: 'doctor' });
-    setUser(loggedInUser);
-    localStorage.setItem('user', JSON.stringify(loggedInUser));
-    router.push('/doctor/dashboard');
+    // Fetch actualizado desde Firestore
+    const freshUser = await firestoreService.findUserByEmail(email);
+    if (freshUser) {
+      const loggedInUser = buildUserFromData({ ...freshUser, id: newDoctorId, role: 'doctor' });
+      setUser(loggedInUser);
+      localStorage.setItem('user', JSON.stringify(loggedInUser));
+      router.push('/doctor/dashboard');
+    }
 };
 
   const logout = () => {
+    if (user && ['patient', 'doctor', 'seller'].includes(user.role)) {
+      clearUserNotifications(user.id, user.role as 'patient' | 'doctor' | 'seller');
+    }
     setUser(null);
     localStorage.removeItem('user');
     sessionStorage.removeItem('user'); // Limpiar también sessionStorage
@@ -333,7 +377,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     console.log('Usuario actualizado:', updatedUser);
     
     setUser(updatedUser as User);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: _3, ...updatedUserNoPassword } = updatedUser as User;
+    localStorage.setItem('user', JSON.stringify(updatedUserNoPassword));
   };
   
   const changePassword = async (currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
@@ -341,7 +387,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: false, message: 'Usuario no autorizado.' };
     }
     
-    // Verificar contraseña actual (soporta tanto texto plano como encriptada)
     let currentPasswordValid = false;
     if (isPasswordHashed(user.password)) {
       currentPasswordValid = await verifyPassword(currentPassword, user.password);
@@ -356,7 +401,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // Encriptar nueva contraseña
       const hashedNewPassword = await hashPassword(newPassword);
-      
       let updatePromise;
       if (user.role === 'patient') {
         updatePromise = firestoreService.updatePatient(user.id, { password: hashedNewPassword });
@@ -365,13 +409,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         return { success: false, message: 'Rol de usuario no soportado para cambio de contraseña.' };
       }
-      
       await updatePromise;
-      
       const updatedUser = { ...user, password: hashedNewPassword };
       setUser(updatedUser as User);
       localStorage.setItem('user', JSON.stringify(updatedUser));
-      
+      // Revocar tokens en backend
+      try {
+        await fetch('/api/revoke-tokens', { method: 'POST', headers: { 'authorization': `Bearer ${localStorage.getItem('token') || ''}` } });
+      } catch {
+        // No bloquear el flujo si falla la revocación
+      }
       return { success: true, message: 'Contraseña actualizada exitosamente.' };
     } catch (error) {
       console.error("Error changing password:", error);
@@ -394,28 +441,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   const sendPasswordReset = async (email: string) => {
     try {
-        await sendPasswordResetEmail(auth, email);
+      const res = await fetch('/api/send-password-reset-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
         toast({
-            title: 'Correo de Recuperación Enviado',
-            description: 'Revisa tu bandeja de entrada para restablecer tu contraseña.',
+          title: 'Correo de Recuperación Enviado',
+          description: 'Revisa tu bandeja de entrada o spam.',
         });
-    } catch (error: unknown) {
-        console.error("Error sending password reset email:", error);
-        // Firebase Auth now uses 'auth/invalid-email' for non-existent users
-        const code = typeof error === 'object' && error && 'code' in error ? (error as { code?: string }).code : '';
-        if (code === 'auth/user-not-found' || code === 'auth/invalid-email') {
-            toast({
-                variant: 'destructive',
-                title: 'Usuario no encontrado',
-                description: 'No existe una cuenta asociada a este correo electrónico.',
-            });
-        } else {
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'No se pudo enviar el correo de recuperación. Inténtalo de nuevo.',
-            });
-        }
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: data.error || 'No se pudo enviar el correo de recuperación.',
+        });
+      }
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Ocurrió un error al enviar el correo.',
+      });
     }
   };
 

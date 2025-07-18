@@ -55,6 +55,55 @@ export function AppointmentProvider({ children }: { children: ReactNode }) {
     };
     
     await firestoreService.addAppointment(newAppointment);
+    // Enviar correo de confirmación al paciente
+    try {
+      const safeEmail = user.email || 'sin-correo@ejemplo.com';
+      const safeName = user.name || 'Paciente';
+      const safeDate = newAppointment.date || '';
+      const safeTime = newAppointment.time || '';
+      const safeDoctor = newAppointment.doctorName || 'Médico';
+      const safeSpecialty = (newAppointment as { doctorSpecialty?: string }).doctorSpecialty || 'General';
+      const safeConsultationFee = newAppointment.consultationFee ?? 0;
+      const safeServices = newAppointment.services || [];
+      const safeTotalPrice = newAppointment.totalPrice ?? 0;
+      const safePaymentMethod = newAppointment.paymentMethod || 'efectivo';
+      const safePaymentStatus = newAppointment.paymentStatus || 'Pendiente';
+
+      console.log('Datos para correo de cita:', {
+        email: safeEmail,
+        name: safeName,
+        date: safeDate,
+        time: safeTime,
+        doctor: safeDoctor,
+        specialty: safeSpecialty,
+        consultationFee: safeConsultationFee,
+        services: safeServices,
+        totalPrice: safeTotalPrice,
+        paymentMethod: safePaymentMethod,
+        paymentStatus: safePaymentStatus,
+      });
+
+      await fetch('/api/send-appointment-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: safeEmail,
+          name: safeName,
+          date: safeDate,
+          time: safeTime,
+          doctor: safeDoctor,
+          specialty: safeSpecialty,
+          consultationFee: safeConsultationFee,
+          services: safeServices,
+          totalPrice: safeTotalPrice,
+          paymentMethod: safePaymentMethod,
+          paymentStatus: safePaymentStatus,
+        }),
+      });
+    } catch (e) {
+      // No bloquear el flujo si falla el correo
+      console.error('Error enviando correo de cita:', e);
+    }
     await fetchAppointments();
   }, [user, fetchAppointments]);
 

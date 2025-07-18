@@ -415,7 +415,7 @@ export default function DoctorProfilePage() {
         toast({
           variant: "destructive",
           title: "Error al Agendar",
-          description: error instanceof Error ? error.message : "No se pudo agendar la cita. Intenta de nuevo.",
+          description: "No se pudo agendar la cita. Intenta de nuevo.",
         });
       }
     } finally {

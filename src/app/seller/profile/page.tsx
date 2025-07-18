@@ -20,6 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { User, Save } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { z } from 'zod';
+import { validateName, validatePhone } from '@/lib/validation-utils';
 
 const SellerProfileSchema = z.object({
   fullName: z.string().min(3, "El nombre completo es requerido."),
@@ -75,9 +76,17 @@ export default function SellerProfilePage() {
         imageUri = await fileToDataUri(newImageFile);
     }
 
+    // Sanitizar y validar antes de zod
+    const nameSan = validateName(fullName);
+    const phoneSan = validatePhone(phone);
+    if (!nameSan.isValid || (phone && !phoneSan.isValid)) {
+      toast({ variant: 'destructive', title: 'Error de Validación', description: 'Datos inválidos o peligrosos.' });
+      return;
+    }
+
     const result = SellerProfileSchema.safeParse({ 
-        fullName, 
-        phone, 
+        fullName: nameSan.sanitized, 
+        phone: phoneSan.sanitized, 
         profileImage: imageUri 
     });
 

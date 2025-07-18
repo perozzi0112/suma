@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useSettings } from '@/lib/settings';
 import { useToast } from '@/hooks/use-toast';
+import * as firestoreService from '@/lib/firestoreService';
 
 interface WelcomeModalProps {
   isOpen: boolean;
@@ -39,6 +40,7 @@ export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
   // Estado para el formulario de perfil
   const [age, setAge] = useState<string>('');
   const [gender, setGender] = useState<'masculino' | 'femenino' | 'otro' | ''>('');
+  const [cedula, setCedula] = useState('');
   const [phone, setPhone] = useState('');
   const [city, setCity] = useState('');
 
@@ -84,18 +86,60 @@ export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
   const handleCompleteProfile = async () => {
     if (!user) return;
 
+    // Validación de campos obligatorios
+    if (!age || !gender || !cedula || !phone || !city) {
+      toast({
+        variant: 'destructive',
+        title: 'Campos incompletos',
+        description: 'Por favor completa todos los campos antes de continuar.'
+      });
+      return;
+    }
+
+    // Validar formato de cédula (formato venezolano: V-12345678)
+    const cedulaRegex = /^[VE]-?\d{6,8}$/i;
+    if (!cedulaRegex.test(cedula)) {
+      toast({
+        variant: 'destructive',
+        title: 'Cédula inválida',
+        description: 'Por favor ingresa una cédula válida (ej: V-12345678 o E-12345678)'
+      });
+      return;
+    }
+
     try {
+      // Verificar que la cédula sea única
+      const allPatients = await firestoreService.getPatients();
+      const existingPatient = allPatients.find(p => 
+        p.cedula && p.cedula.toLowerCase() === cedula.toLowerCase() && p.id !== user.id
+      );
+      
+      if (existingPatient) {
+        toast({
+          variant: 'destructive',
+          title: 'Cédula ya registrada',
+          description: 'Esta cédula ya está registrada por otro paciente.'
+        });
+        return;
+      }
+
       const updateData = {
         age: age ? parseInt(age, 10) : null,
-        gender: gender === '' ? null : gender,
+        gender: gender || null,
+        cedula: cedula.toUpperCase(),
         phone: phone || null,
         city: city || null,
         profileCompleted: true
       };
 
-      console.log('Guardando datos del perfil:', updateData);
-      
       await updateUser(updateData);
+
+      // Refrescar usuario desde Firestore y actualizar estado global y localStorage
+      const freshUser = await firestoreService.findUserByEmail(user.email);
+      if (freshUser) {
+        await updateUser({ ...freshUser }); // Actualiza el contexto
+        localStorage.setItem('user', JSON.stringify(freshUser));
+      }
 
       toast({
         title: "¡Perfil Completado!",
@@ -103,6 +147,10 @@ export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
       });
 
       setCurrentStep(3); // Ir al paso final
+      // Cerrar la modal tras un pequeño delay para UX
+      setTimeout(() => {
+        onClose();
+      }, 1200);
     } catch (error) {
       console.error('Error updating profile:', error);
       toast({
@@ -123,18 +171,7 @@ export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
       case 0:
         return (
           <div className="text-center space-y-6">
-            <div className="mx-auto w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center">
-              <Sparkles className="w-10 h-10 text-blue-600" />
-            </div>
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold text-gray-900">
-                ¡Bienvenido a SUMA! 🎉
-              </h3>
-              <p className="text-gray-600">
-                Estamos emocionados de tenerte con nosotros. Para brindarte la mejor experiencia, 
-                necesitamos que completes tu perfil con información básica.
-              </p>
-            </div>
+            {/* Ícono Sparkles eliminado para evitar duplicidad visual */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
               <Card className="text-center p-4">
                 <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -201,12 +238,46 @@ export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
                   onChange={(e) => setGender(e.target.value as 'masculino' | 'femenino' | 'otro' | '')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="">Seleccionar género</option>
+                  <option value="" disabled>Selecciona tu sexo</option>
                   <option value="masculino">Masculino</option>
                   <option value="femenino">Femenino</option>
                   <option value="otro">Otro</option>
                 </select>
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <User className="w-4 h-4" />
+                Cédula de Identidad *
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">
+                  V-
+                </span>
+                <input
+                  type="text"
+                  placeholder="12345678"
+                  value={cedula.replace('V-', '')}
+                  onChange={(e) => {
+                    // Solo permitir números
+                    const numbersOnly = e.target.value.replace(/[^0-9]/g, '');
+                    // Limitar a 8 dígitos
+                    const limitedNumbers = numbersOnly.slice(0, 8);
+                    setCedula(`V-${limitedNumbers}`);
+                  }}
+                  onFocus={() => {
+                    // Si el campo está vacío, agregar el prefijo automáticamente
+                    if (!cedula) {
+                      setCedula('V-');
+                    }
+                  }}
+                  className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <p className="text-xs text-gray-500">
+                Solo números (máximo 8 dígitos) - no se podrá modificar después
+              </p>
             </div>
           </div>
         );
@@ -251,11 +322,9 @@ export function WelcomeModal({ isOpen, onClose }: WelcomeModalProps) {
                   onChange={(e) => setCity(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="">Seleccionar ciudad</option>
-                  {cities.map((city) => (
-                    <option key={city.name} value={city.name}>
-                      {city.name}
-                    </option>
+                  <option value="" disabled>Selecciona tu ciudad para búsquedas</option>
+                  {cities.map((cityObj) => (
+                    <option key={cityObj.name} value={cityObj.name}>{cityObj.name}</option>
                   ))}
                 </select>
               </div>

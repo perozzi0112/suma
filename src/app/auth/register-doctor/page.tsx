@@ -20,6 +20,7 @@ import { useSettings } from '@/lib/settings';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import Image from 'next/image';
+import { validateEmail, validatePassword, validateName, validateSpecialty, validateCity, validateAddress } from '@/lib/validation-utils';
 
 const DoctorRegistrationSchema = z.object({
   name: z.string().min(3, "El nombre debe tener al menos 3 caracteres."),
@@ -71,8 +72,26 @@ export default function RegisterDoctorPage() {
     e.preventDefault();
     setIsLoading(true);
 
+    // Sanitizar y validar antes de zod
+    const nameSan = validateName(formData.name);
+    const emailSan = validateEmail(formData.email);
+    const passSan = validatePassword(formData.password);
+    const specialtySan = validateSpecialty(formData.specialty);
+    const citySan = validateCity(formData.city);
+    const addressSan = validateAddress(formData.address);
+    if (!nameSan.isValid || !emailSan.isValid || !passSan.isValid || !specialtySan.isValid || !citySan.isValid || !addressSan.isValid) {
+      toast({ variant: 'destructive', title: 'Error de Registro', description: 'Datos inválidos o peligrosos.' });
+      setIsLoading(false);
+      return;
+    }
+
     const dataToValidate = {
         ...formData,
+        name: nameSan.sanitized,
+        email: emailSan.sanitized,
+        specialty: specialtySan.sanitized,
+        city: citySan.sanitized,
+        address: addressSan.sanitized,
         slotDuration: parseInt(formData.slotDuration, 10),
         consultationFee: parseFloat(formData.consultationFee),
     };

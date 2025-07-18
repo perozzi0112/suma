@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { useSettings } from '@/lib/settings';
 import Image from 'next/image';
+import { validateEmail, validatePassword, validateName } from '@/lib/validation-utils';
 
 
 const RegisterSchema = z.object({
@@ -50,7 +51,17 @@ export default function RegisterPage() {
     e.preventDefault();
     setIsLoading(true);
     
-    const result = RegisterSchema.safeParse({ fullName, email, password, confirmPassword });
+    // Sanitizar y validar antes de zod
+    const nameSan = validateName(fullName);
+    const emailSan = validateEmail(email);
+    const passSan = validatePassword(password);
+    if (!nameSan.isValid || !emailSan.isValid || !passSan.isValid) {
+      toast({ variant: 'destructive', title: 'Error de Registro', description: 'Datos inválidos o peligrosos.' });
+      setIsLoading(false);
+      return;
+    }
+    
+    const result = RegisterSchema.safeParse({ fullName: nameSan.sanitized, email: emailSan.sanitized, password, confirmPassword });
     
     if (!result.success) {
       const errorMessage = result.error.errors.map(err => err.message).join(' ');
@@ -60,7 +71,7 @@ export default function RegisterPage() {
     }
     
     try {
-      await register(fullName, email, password);
+      await register(nameSan.sanitized, emailSan.sanitized, password);
     } catch {
        toast({ variant: 'destructive', title: 'Error', description: "Ocurrió un error inesperado durante el registro." });
     } finally {

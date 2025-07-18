@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 
 import * as firestoreService from '@/lib/firestoreService';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 const SellerFormSchema = z.object({
@@ -35,6 +35,7 @@ export function SellersTab() {
   const [ , setDoctorPayments] = useState<DoctorPayment[]>([]);
   const [sellerPayments, setSellerPayments] = useState<SellerPayment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
   const [isSellerDialogOpen, setIsSellerDialogOpen] = useState(false);
   const [editingSeller, setEditingSeller] = useState<Seller | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -94,6 +95,16 @@ export function SellersTab() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Filtrar vendedoras basado en el término de búsqueda
+  const filteredSellers = sellers.filter(seller => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      seller.name.toLowerCase().includes(searchLower) ||
+      seller.email.toLowerCase().includes(searchLower) ||
+      (seller.referralCode && seller.referralCode.toLowerCase().includes(searchLower))
+    );
+  });
 
   // Calcular comisión pendiente para cada vendedora
   const handleDeleteItem = async () => {
@@ -234,6 +245,24 @@ export function SellersTab() {
           </Button>
         </CardHeader>
         <CardContent>
+          {/* Buscador */}
+          <div className="mb-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar vendedoras por nombre, email o código de referido..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            {searchTerm && (
+              <p className="text-sm text-muted-foreground mt-2">
+                Mostrando {filteredSellers.length} de {sellers.length} vendedoras
+              </p>
+            )}
+          </div>
+
             <Table>
               <TableHeader>
                 <TableRow>
@@ -248,7 +277,7 @@ export function SellersTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sellers.map(seller => {
+                {filteredSellers.map(seller => {
                   const pendientes = pendingPaymentsBySeller[seller.id] || [];
                   const total = pendientes.reduce((sum, p) => sum + (p.amount || 0), 0);
                   const doctors = Array.from(new Set(pendientes.flatMap(p => p.includedDoctors.map(d => d.name))));

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getMessaging } from 'firebase-admin/messaging';
 import { getFirestore } from 'firebase-admin/firestore';
+import { rateLimit } from '../_rate-limit';
+import { saveAuditLog } from '../_audit-log';
 
 // Inicializar Firebase Admin si no está inicializado y las credenciales están disponibles
 let messaging: ReturnType<typeof getMessaging> | null = null;
@@ -33,6 +35,19 @@ if (!getApps().length) {
 }
 
 export async function POST(request: NextRequest) {
+  // Rate limiting combinado
+  const ip = request.headers.get('x-forwarded-for') || 'unknown';
+  const userId = request.headers.get('x-user-id') || 'anon';
+  const key = `notif:${userId}:${ip}`;
+  if (!rateLimit(key)) {
+    return NextResponse.json({ error: 'Demasiadas peticiones, intenta más tarde.' }, { status: 429 });
+  }
+  // Validar autenticación y rol admin
+  const userRole = request.headers.get('x-user-role');
+  if (userRole !== 'admin') {
+    return NextResponse.json({ error: 'No autorizado. Solo admin puede enviar notificaciones.' }, { status: 403 });
+  }
+
   try {
     // Verificar que Firebase Admin esté inicializado
     if (!messaging || !db) {
@@ -125,6 +140,17 @@ export async function POST(request: NextRequest) {
       fcmMessageId: response,
     });
 
+    await saveAuditLog({
+      userId: request.headers.get('x-user-id') || 'anon',
+      email: request.headers.get('x-user-email') || '',
+      role: request.headers.get('x-user-role') || '',
+      ip: request.headers.get('x-forwarded-for') || 'unknown',
+      action: 'send-notification',
+      details: { userId, type, title, body },
+      result: 'success',
+      message: 'Notificación enviada',
+    });
+
     return NextResponse.json({ 
       success: true, 
       messageId: response 
@@ -132,6 +158,16 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('❌ Error al enviar notificación:', error);
+    await saveAuditLog({
+      userId: request.headers.get('x-user-id') || 'anon',
+      email: request.headers.get('x-user-email') || '',
+      role: request.headers.get('x-user-role') || '',
+      ip: request.headers.get('x-forwarded-for') || 'unknown',
+      action: 'send-notification',
+      details: {},
+      result: 'error',
+      message: String(error),
+    });
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

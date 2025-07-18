@@ -1382,6 +1382,91 @@ export const getDoctorReviewStats = async (doctorId: string) => {
     }
 };
 
+// Obtener historial de inactivaciones de un médico
+export const getDoctorInactivationLogs = async (doctorId: string) => {
+  try {
+    const q = query(collection(db, "inactivationLogs"), where("doctorId", "==", doctorId));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.error("Error al obtener historial de inactivaciones:", error);
+    return [];
+  }
+};
+
+// --- Función para crear admin en Firestore ---
+export const createAdminUser = async () => {
+  try {
+    console.log('🔐 Creando usuario administrador en Firestore...');
+    
+    // Verificar si ya existe el admin
+    const existingAdmin = await findAdminByEmail('perozzi0112@gmail.com');
+    if (existingAdmin) {
+      console.log('✅ Admin ya existe en Firestore');
+      return existingAdmin;
+    }
+    
+    // Crear admin en colección separada para mayor seguridad
+    const adminData = {
+      email: 'perozzi0112@gmail.com',
+      name: 'Administrador Suma',
+      password: '..Suma..01', // Se encriptará en el primer login
+      role: 'admin',
+      profileImage: 'https://placehold.co/400x400.png',
+      createdAt: new Date().toISOString(),
+      lastLogin: null,
+      isActive: true,
+      permissions: ['all'], // Permisos completos
+    };
+    
+    const adminRef = await addDoc(collection(db, 'admins'), adminData);
+    console.log('✅ Admin creado exitosamente con ID:', adminRef.id);
+    
+    return {
+      ...adminData,
+      id: adminRef.id,
+    };
+  } catch (error) {
+    console.error('❌ Error creando admin:', error);
+    throw error;
+  }
+};
+
+// --- Función para buscar admin en Firestore ---
+export interface AdminUser {
+  id: string;
+  email: string;
+  name: string;
+  password: string;
+  profileImage?: string;
+  role: 'admin';
+  createdAt?: string;
+  lastLogin?: string | null;
+  isActive?: boolean;
+  permissions?: string[];
+}
+
+export const findAdminByEmail = async (email: string): Promise<AdminUser | null> => {
+  try {
+    const q = query(collection(db, 'admins'), where("email", "==", email.toLowerCase()));
+    const snapshot = await getDocs(q);
+    
+    if (!snapshot.empty) {
+      const docData = snapshot.docs[0].data();
+      return {
+        ...docData,
+        id: snapshot.docs[0].id,
+        role: 'admin',
+      } as AdminUser;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('❌ Error buscando admin:', error);
+    return null;
+  }
+};
+
 
 
 

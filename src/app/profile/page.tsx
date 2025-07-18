@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
+import * as firestoreService from '@/lib/firestoreService';
 import { HeaderWrapper, BottomNav } from '@/components/header';
 import { Button } from '@/components/ui/button';
 import {
@@ -29,6 +30,7 @@ import { z } from 'zod';
 import { useSettings } from '@/lib/settings';
 import Image from 'next/image';
 import { NotificationSettings } from '@/components/notification-settings';
+import { validateName, validatePhone, validateCedula, validateCity, validateAge } from '@/lib/validation-utils';
 
 const PatientProfileSchema = z.object({
   fullName: z.string().min(3, "El nombre completo es requerido."),
@@ -82,25 +84,16 @@ export default function ProfilePage() {
     if (user === null) {
       router.push('/auth/login');
     } else {
-      console.log('Cargando datos del usuario en perfil:', user);
-      setFullName(user.name);
-      setAge(user.age ? String(user.age) : '');
-      setGender(user.gender || '');
-      setCedula(user.cedula || '');
-      setPhone(user.phone || '');
-      setCity(user.city || '');
-      setProfileImage(user.profileImage);
-      
-      console.log('Datos cargados en el formulario:', {
-        name: user.name,
-        age: user.age,
-        gender: user.gender,
-        cedula: user.cedula,
-        phone: user.phone,
-        city: user.city
-      });
+      // Actualizar SIEMPRE los campos del formulario cuando el usuario cambie
+      setFullName(user.name ?? '');
+      setAge(user.age !== undefined && user.age !== null ? String(user.age) : '');
+      setGender(user.gender ?? '');
+      setCedula(user.cedula ?? '');
+      setPhone(user.phone ?? '');
+      setCity(user.city ?? '');
+      setProfileImage(user.profileImage ?? null);
     }
-  }, [user, router]);
+  }, [user?.name, user?.age, user?.gender, user?.cedula, user?.phone, user?.city, user?.profileImage, user, router]);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -161,18 +154,29 @@ export default function ProfilePage() {
     }
   };
 
-  const handleProfileSubmit = (e: React.FormEvent) => {
+  const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
+    // Sanitizar y validar antes de zod
+    const nameSan = validateName(fullName);
+    const phoneSan = validatePhone(phone);
+    const cedulaSan = validateCedula(cedula);
+    const citySan = validateCity(city);
+    const ageSan = validateAge(age);
+    if (!nameSan.isValid || (cedula && !cedulaSan.isValid) || (phone && !phoneSan.isValid) || (city && !citySan.isValid) || (age && !ageSan.isValid)) {
+      toast({ variant: 'destructive', title: 'Error de Validación', description: 'Datos inválidos o peligrosos.' });
+      return;
+    }
+
     const parsedAge = age ? parseInt(age, 10) : null;
     const result = PatientProfileSchema.safeParse({
-        fullName,
-        age: parsedAge,
-        gender,
-        cedula,
-        phone,
-        city,
+      fullName: nameSan.sanitized,
+      age: parsedAge,
+      gender,
+      cedula: cedulaSan.sanitized,
+      phone: phoneSan.sanitized,
+      city: citySan.sanitized,
     });
 
     if (!result.success) {
@@ -181,14 +185,24 @@ export default function ProfilePage() {
         return;
     }
 
-    updateUser({
+    // No permitir cambiar la cédula si ya existe
+    const finalCedula = user.cedula || result.data.cedula;
+
+    await updateUser({
       name: result.data.fullName,
       age: result.data.age,
       gender: result.data.gender === '' ? null : result.data.gender,
-      cedula: result.data.cedula,
+      cedula: finalCedula, // Mantener la cédula original si ya existe
       phone: result.data.phone,
       city: result.data.city,
     });
+
+    // Refrescar usuario desde Firestore y actualizar estado global y localStorage
+    const freshUser = await firestoreService.findUserByEmail(user.email);
+    if (freshUser) {
+      await updateUser(freshUser); // Actualiza el contexto
+      localStorage.setItem('user', JSON.stringify(freshUser));
+    }
     
     toast({
         title: "¡Perfil Actualizado!",
@@ -371,7 +385,13 @@ export default function ProfilePage() {
                       value={cedula}
                       onChange={(e) => setCedula(e.target.value)}
                       placeholder="ej., V-12345678"
+                      disabled={!!user?.cedula} // Deshabilitar si ya tiene cédula
                     />
+                    {user?.cedula && (
+                      <p className="text-xs text-muted-foreground">
+                        La cédula no se puede modificar después del registro
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">Teléfono</Label>
