@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
 
 if (!getApps().length) {
   let adminConfig;
@@ -18,7 +17,6 @@ if (!getApps().length) {
     console.error('Firebase Admin no inicializado: variables de entorno faltantes');
   }
 }
-const db = getFirestore();
 
 const GMAIL_USER = process.env.GMAIL_USER;
 const GMAIL_PASS = process.env.GMAIL_PASS;
