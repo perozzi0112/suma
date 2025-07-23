@@ -181,25 +181,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       const adminUserData: User = {
         id: adminUser.id,
-        email: lowerEmail,
+          email: lowerEmail, 
         name: adminUser.name || 'Administrador',
-        role: 'admin',
-        age: null,
-        gender: null,
-        cedula: null,
-        phone: null,
+          role: 'admin', 
+          age: null, 
+          gender: null,
+          cedula: null, 
+          phone: null, 
         profileImage: adminUser.profileImage || 'https://placehold.co/400x400.png',
-        favoriteDoctorIds: [],
+          favoriteDoctorIds: [], 
         password: adminUser.password,
-        city: null
-      };
+          city: null
+        };
       // Eliminar password antes de guardar en localStorage
       setUser(adminUserData);
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password: _1, ...adminUserDataNoPassword } = adminUserData;
       localStorage.setItem('user', JSON.stringify(adminUserDataNoPassword));
-      router.push('/admin/dashboard');
-      return;
+        router.push('/admin/dashboard');
+        return;
     }
 
     // Handle other user roles
@@ -449,13 +449,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await res.json();
       if (res.ok && data.success) {
         toast({
-          title: 'Correo de Recuperación Enviado',
+            title: 'Correo de Recuperación Enviado',
           description: 'Revisa tu bandeja de entrada o spam.',
-        });
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
+            });
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
           description: data.error || 'No se pudo enviar el correo de recuperación.',
         });
       }
@@ -464,7 +464,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         variant: 'destructive',
         title: 'Error',
         description: 'Ocurrió un error al enviar el correo.',
-      });
+            });
     }
   };
 

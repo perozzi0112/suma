@@ -63,7 +63,7 @@ export function DoctorsTab() {
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
   const [historyLogs, setHistoryLogs] = useState<InactivationLog[]>([]);
   const [historyDoctor, setHistoryDoctor] = useState<Doctor | null>(null);
-
+  
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {

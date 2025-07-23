@@ -173,37 +173,60 @@ export default function DoctorProfilePage() {
   
   const handleApplyCoupon = () => {
     if (!id || !couponInput || !doctor) return;
-    
+
     // Combinar cupones globales y específicos del doctor
-    const globalCoupons = coupons.filter(c => c.scope === 'general' || c.scope === id);
+    const globalCoupons = coupons.filter(
+      c =>
+        c.scope === 'general' ||
+        c.scope === id ||
+        (c.scopeType === 'all') ||
+        (c.scopeType === 'specific' && Array.isArray(c.scopeDoctors) && c.scopeDoctors.includes(id)) ||
+        (c.scopeType === 'specialty' && doctor.specialty && c.scopeSpecialty === doctor.specialty) ||
+        (c.scopeType === 'city' && doctor.city && c.scopeCity === doctor.city)
+    );
     const doctorCoupons = doctor.coupons || [];
     const allApplicableCoupons = [...globalCoupons, ...doctorCoupons];
-    
-    
-    const coupon = allApplicableCoupons.find(c => c.code.toUpperCase() === couponInput.toUpperCase());
+
+    const coupon = allApplicableCoupons.find(
+      c => c.code.toUpperCase() === couponInput.toUpperCase() && c.isActive !== false
+    );
     const totalBeforeDiscount = (doctor.consultationFee || 0) + subtotal;
 
-    if (coupon) {
+    // Validar fechas de validez
+    const now = new Date();
+    const isValidDate = (c: any) => {
+      const from = c.validFrom?.toDate ? c.validFrom.toDate() : c.validFrom ? new Date(c.validFrom) : null;
+      const to = c.validTo?.toDate ? c.validTo.toDate() : c.validTo ? new Date(c.validTo) : null;
+      return (!from || now >= from) && (!to || now <= to);
+    };
+
+    if (coupon && isValidDate(coupon)) {
       let discount = 0;
+      // Unificar campo de valor de descuento
+      const discountValue = coupon.discountValue ?? coupon.value ?? 0;
       if (coupon.discountType === 'percentage') {
-        discount = (totalBeforeDiscount * coupon.discountValue) / 100;
+        discount = (totalBeforeDiscount * discountValue) / 100;
       } else {
-        discount = coupon.discountValue;
+        discount = discountValue;
       }
-      
-      const finalDiscount = Math.min(discount, totalBeforeDiscount);
+
+      // Aplicar máximo descuento si existe
+      let finalDiscount = Math.min(discount, totalBeforeDiscount);
+      if (coupon.maxDiscount) {
+        finalDiscount = Math.min(finalDiscount, coupon.maxDiscount);
+      }
 
       setDiscountAmount(finalDiscount);
       setAppliedCoupon(coupon);
       toast({
         title: "¡Cupón aplicado!",
-        description: `Se ha aplicado un descuento de ${coupon.discountType === 'percentage' ? `${coupon.discountValue}%` : `$${coupon.discountValue}`}.`
+        description: `Se ha aplicado un descuento de ${coupon.discountType === 'percentage' ? `${discountValue}%` : `$${discountValue}`}.`
       });
     } else {
       toast({
         variant: "destructive",
         title: "Cupón no válido",
-        description: "El código de cupón ingresado no es válido o ha expirado."
+        description: "El código de cupón ingresado no es válido, ha expirado o no aplica para este médico.",
       });
     }
   };

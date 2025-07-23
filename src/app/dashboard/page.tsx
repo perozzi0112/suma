@@ -679,8 +679,8 @@ export default function DashboardPage() {
 
       {/* Welcome Modal para pacientes nuevos */}
       {showWelcomeModal && (
-    <WelcomeModal
-      isOpen={showWelcomeModal}
+      <WelcomeModal 
+        isOpen={showWelcomeModal} 
       onClose={async () => {
         setShowWelcomeModal(false);
         // Refrescar usuario desde Firestore tras cerrar el modal
@@ -693,7 +693,7 @@ export default function DashboardPage() {
           }
         }
       }}
-    />
+      />
   )}
 
     </div>
