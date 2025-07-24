@@ -196,9 +196,13 @@ export function AppointmentsTab({ appointments, onOpenDialog }: { appointments: 
           </CardHeader>
           <CardContent className="space-y-4 max-h-[500px] overflow-y-auto">
             {tomorrowAppointments.length > 0 ? (
-                tomorrowAppointments.map(appt => <DoctorAppointmentCard key={appt.id} appointment={appt} onOpenDialog={onOpenDialog} />)
+              tomorrowAppointments.map(appt => (
+                <div key={appt.id}>
+                  <DoctorAppointmentCard appointment={appt} onOpenDialog={onOpenDialog} />
+                </div>
+              ))
             ) : (
-                <p className="text-center text-muted-foreground py-10">No hay citas para mañana.</p>
+              <p className="text-center text-muted-foreground py-10">No hay citas para mañana.</p>
             )}
           </CardContent>
         </Card>

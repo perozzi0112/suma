@@ -88,6 +88,20 @@ export function DoctorAppointmentCard({ appointment, onOpenDialog, isPast = fals
           <CardFooter className="p-4 pt-0 border-t mt-4 flex justify-end gap-2">
             <Button size="sm" variant="outline" onClick={() => onOpenDialog('chat', appointment)}><MessageSquare className="mr-2 h-4 w-4"/> Chat</Button>
             <Button size="sm" onClick={() => onOpenDialog('appointment', appointment)}><Eye className="mr-2 h-4 w-4"/> Ver Detalles</Button>
+            {appointment.patientPhone && (
+              <a
+                href={`https://api.whatsapp.com/send?phone=${appointment.patientPhone.replace(/[^0-9]/g, "")}&text=${encodeURIComponent(
+                  `👩‍⚕️ Estimado/a ${appointment.patientName},\n\n📅 Le recordamos que tiene una cita médica programada para mañana (${format(parseISO(appointment.date), 'dd/MM/yyyy')} a las ${appointment.time}) con la Dra. ${appointment.doctorName}.\n\n📍 Dirección: ${(appointment.doctorAddress && appointment.doctorAddress.trim() !== '' ? appointment.doctorAddress : 'Consultorio')}\n\n⏰ Por favor, llegue al menos 10 minutos antes de la hora establecida. Si llega después de la hora, podría perder su turno.\n\nℹ️ Si tiene alguna novedad, puede ver más detalles de su cita en la app de SUMA.\n\n🙏 ¡Gracias por confiar en www.sumasalud.app! 💙`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-xs"
+                title="Enviar recordatorio por WhatsApp"
+                style={{ textDecoration: 'none' }}
+              >
+                WhatsApp
+              </a>
+            )}
           </CardFooter>
         </Card>
     )

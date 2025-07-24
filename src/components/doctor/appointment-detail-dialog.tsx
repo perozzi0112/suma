@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import type { Appointment, Service } from "@/lib/types";
 import {
   Dialog,
@@ -17,7 +17,6 @@ import { Button, } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Eye, CheckCircle, ThumbsUp, ThumbsDown, MessageSquare, Save, CreditCard } from "lucide-react";
 import { format, parseISO, addHours } from 'date-fns';
@@ -47,6 +46,12 @@ export function AppointmentDetailDialog({
   const [editableServices, setEditableServices] = useState<Service[]>([]);
   const [isProofDialogOpen, setIsProofDialogOpen] = useState(false);
 
+  // Calculate editableTotalPrice
+  const editableTotalPrice =
+    (appointment?.consultationFee || 0) +
+    editableServices.reduce((sum, s) => sum + (s.price || 0), 0) -
+    (appointment?.discountAmount || 0);
+
   useEffect(() => {
     if (appointment) {
       setClinicalNotes(appointment.clinicalNotes || "");
@@ -55,28 +60,14 @@ export function AppointmentDetailDialog({
     }
   }, [appointment]);
 
-  const editableTotalPrice = useMemo(() => {
-    if (!appointment) return 0;
-    const servicesTotal = editableServices.reduce((sum, s) => sum + s.price, 0);
-    return (appointment.consultationFee || 0) + servicesTotal;
-  }, [editableServices, appointment]);
-
-  const handleServiceToggle = (service: Service) => {
-    setEditableServices((prev) => {
-      const isSelected = prev.some((s) => s.id === service.id);
-      if (isSelected) {
-        return prev.filter((s) => s.id !== service.id);
-      } else {
-        return [...prev, service];
-      }
-    });
-  };
-
   const handleSaveServices = () => {
     if (appointment) {
       onUpdateAppointment(appointment.id, {
         services: editableServices,
         totalPrice: editableTotalPrice,
+        // Mantener los campos de descuento y cupón si existen
+        discountAmount: appointment.discountAmount ?? 0,
+        appliedCoupon: appointment.appliedCoupon ?? undefined,
       });
     }
   };
@@ -126,6 +117,8 @@ export function AppointmentDetailDialog({
     }
   };
 
+  console.log("APPOINTMENT EN MODAL:", appointment);
+
   return (
     <>
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -142,10 +135,50 @@ export function AppointmentDetailDialog({
                             <p><strong>Nombre:</strong> {appointment.patientName}</p>
                         </CardContent>
                     </Card>
-                    <Card><CardHeader><CardTitle className="text-base">Detalles del Pago</CardTitle></CardHeader>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-base">Detalles del Pago</CardTitle>
+                        </CardHeader>
                         <CardContent className="text-sm space-y-2">
-                            <p><strong>Total:</strong> <span className="font-mono font-semibold">${editableTotalPrice.toFixed(2)}</span></p>
-                            <p><strong>Método:</strong> <span className="capitalize">{appointment.paymentMethod}</span></p>
+                            {/* Mostrar el subtotal antes de descuento si hay descuento */}
+                            {appointment.discountAmount && appointment.discountAmount > 0 && (
+                                <p>
+                                    <strong>Subtotal:</strong>
+                                    <span className="font-mono">
+                                        ${(appointment.totalPrice + appointment.discountAmount).toFixed(2)}
+                                    </span>
+                                </p>
+                            )}
+                            {/* Mostrar el descuento si existe */}
+                            {appointment.discountAmount && appointment.discountAmount > 0 && (
+                                <p>
+                                    <strong>Descuento:</strong>
+                                    <span className="font-mono text-green-600">
+                                        -${appointment.discountAmount.toFixed(2)}
+                                    </span>
+                                    {appointment.appliedCoupon && (
+                                        <span className="ml-2 text-xs text-green-700">
+                                            (Cupón: {appointment.appliedCoupon})
+                                        </span>
+                                    )}
+                                </p>
+                            )}
+                            {/* Mostrar el total final */}
+                            <p>
+                                <strong>Total:</strong>
+                                <span className="font-mono font-semibold">
+                                    ${appointment.totalPrice.toFixed(2)}
+                                    {appointment.discountAmount && appointment.discountAmount > 0 && (
+                                        <span className="ml-2 text-green-600 text-xs font-normal">
+                                            (con descuento)
+                                        </span>
+                                    )}
+                                </span>
+                            </p>
+                            <p>
+                                <strong>Método:</strong>
+                                <span className="capitalize">{appointment.paymentMethod}</span>
+                            </p>
                             <div className="flex items-center gap-2">
                                 <strong>Estado:</strong>
                                 <Badge variant={appointment.paymentStatus === 'Pagado' ? 'default' : 'secondary'} className={cn({'bg-green-600 text-white': appointment.paymentStatus === 'Pagado'})}>
@@ -218,24 +251,33 @@ export function AppointmentDetailDialog({
                            <Separator />
                            <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
                                 {doctorServices.length > 0 ? doctorServices.map(service => (
-                                    <div key={service.id} className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <Checkbox
-                                                id={`service-${service.id}`}
-                                                checked={editableServices.some(s => s.id === service.id)}
-                                                onCheckedChange={() => handleServiceToggle(service)}
-                                                disabled={isAppointmentLocked}
-                                            />
-                                            <Label htmlFor={`service-${service.id}`} className={cn("font-normal", isAppointmentLocked && "text-muted-foreground")}>{service.name}</Label>
-                                        </div>
-                                        <span className="font-mono text-sm">${service.price.toFixed(2)}</span>
+                                    <div key={service.id} className="flex justify-between items-center">
+                                        <span>{service.name}</span>
+                                        <span className="font-mono">${service.price.toFixed(2)}</span>
                                     </div>
-                                )) : <p className="text-xs text-muted-foreground text-center">No hay servicios adicionales configurados.</p>}
+                                )) : (
+                                    <div className="text-muted-foreground text-xs">Sin servicios adicionales</div>
+                                )}
                            </div>
                            <Separator />
+                           {/* Mostrar descuento si existe */}
+                           {appointment.discountAmount && appointment.discountAmount > 0 && (
+                             <div className="flex justify-between items-center text-green-600 text-sm">
+                               <span>
+                                 Descuento:
+                                 {appointment.appliedCoupon && (
+                                   <span className="ml-1 text-green-700">
+                                     (Cupón: <span className="font-mono">{appointment.appliedCoupon}</span>)
+                                   </span>
+                                 )}
+                               </span>
+                               <span className="font-mono">-${appointment.discountAmount.toFixed(2)}</span>
+                             </div>
+                           )}
+                           {/* Mostrar el total final */}
                            <div className="flex justify-between items-center font-bold text-lg pt-2">
                                <span>Total:</span>
-                               <span className="text-primary">${editableTotalPrice.toFixed(2)}</span>
+                             <span className="text-primary">${appointment.totalPrice?.toFixed(2) ?? "0.00"}</span>
                            </div>
                         </CardContent>
                     </Card>

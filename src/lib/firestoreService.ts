@@ -88,30 +88,37 @@ export const getPatients = () => getCollectionData<Patient>('patients');
 export const getPatient = (id: string) => getDocumentData<Patient>('patients', id);
 export const getAppointments = () => getCollectionData<Appointment>('appointments');
 export const getDoctorAppointments = async (doctorId: string) => {
-    console.log('🔍 Fetching appointments for doctor:', doctorId);
-    
-    const q = query(collection(db, "appointments"), where("doctorId", "==", doctorId));
-    const snapshot = await getDocs(q);
-    
-    const appointments = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Appointment));
-    
-    console.log('📋 Found appointments:', appointments.length);
-    console.log('📋 Appointments details:', appointments.map(a => ({
-        id: a.id,
-        date: a.date,
-        time: a.time,
-        patientName: a.patientName,
-        paymentMethod: a.paymentMethod,
-        attendance: a.attendance,
-        paymentStatus: a.paymentStatus
-    })));
-    
-    return appointments;
+  const snapshot = await getDocs(
+    query(collection(db, "appointments"), where("doctorId", "==", doctorId))
+  );
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      ...data,
+      discountAmount: typeof data.discountAmount === "number" ? data.discountAmount : 0,
+      appliedCoupon: typeof data.appliedCoupon === "string" ? data.appliedCoupon : undefined,
+      totalPrice: typeof data.totalPrice === "number" ? data.totalPrice : 0,
+      doctorAddress: typeof data.doctorAddress === "string" ? data.doctorAddress : "",
+    } as Appointment;
+  });
 };
+
 export const getPatientAppointments = async (patientId: string) => {
-    const q = query(collection(db, "appointments"), where("patientId", "==", patientId));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Appointment));
+  const snapshot = await getDocs(
+    query(collection(db, "appointments"), where("patientId", "==", patientId))
+  );
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      ...data,
+      discountAmount: typeof data.discountAmount === "number" ? data.discountAmount : 0,
+      appliedCoupon: typeof data.appliedCoupon === "string" ? data.appliedCoupon : undefined,
+      totalPrice: typeof data.totalPrice === "number" ? data.totalPrice : 0,
+      doctorAddress: typeof data.doctorAddress === "string" ? data.doctorAddress : "",
+    } as Appointment;
+  });
 };
 export const getDoctorPayments = () => getCollectionData<DoctorPayment>('doctorPayments');
 export const getSellerPayments = () => getCollectionData<SellerPayment>('sellerPayments');

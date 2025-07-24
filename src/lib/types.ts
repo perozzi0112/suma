@@ -157,6 +157,12 @@ export type Appointment = {
   unreadMessagesByDoctor?: number;
   unreadMessagesByPatient?: number;
   lastMessageTimestamp?: string;
+  // --- NUEVO ---
+  discountAmount?: number;
+  appliedCoupon?: string;
+  // --- PARA WHATSAPP ---
+  patientPhone?: string;
+  doctorAddress?: string;
 };
 
 export type IncludedDoctorCommission = {

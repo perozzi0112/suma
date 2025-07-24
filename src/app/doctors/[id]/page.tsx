@@ -80,8 +80,9 @@ export default function DoctorProfilePage() {
   const fetchAppointments = useCallback(async () => {
     if (id) {
       try {
+        // No aplicar ningún filtro, mapeo o transformación aquí:
         const docAppointments = await firestoreService.getDoctorAppointments(id);
-        setAppointments(docAppointments);
+        setAppointments(docAppointments); // <-- SIN ningún filtro, mapeo ni transformación
       } catch (error) {
         console.error('Error fetching appointments:', error);
       }
@@ -173,7 +174,7 @@ export default function DoctorProfilePage() {
   
   const handleApplyCoupon = () => {
     if (!id || !couponInput || !doctor) return;
-
+    
     // Combinar cupones globales y específicos del doctor
     const globalCoupons = coupons.filter(
       c =>
@@ -186,7 +187,7 @@ export default function DoctorProfilePage() {
     );
     const doctorCoupons = doctor.coupons || [];
     const allApplicableCoupons = [...globalCoupons, ...doctorCoupons];
-
+    
     const coupon = allApplicableCoupons.find(
       c => c.code.toUpperCase() === couponInput.toUpperCase() && c.isActive !== false
     );
@@ -194,9 +195,17 @@ export default function DoctorProfilePage() {
 
     // Validar fechas de validez
     const now = new Date();
-    const isValidDate = (c: any) => {
-      const from = c.validFrom?.toDate ? c.validFrom.toDate() : c.validFrom ? new Date(c.validFrom) : null;
-      const to = c.validTo?.toDate ? c.validTo.toDate() : c.validTo ? new Date(c.validTo) : null;
+    const isValidDate = (c: Coupon) => {
+      const from = c.validFrom && typeof c.validFrom === "object" && "toDate" in c.validFrom
+        ? c.validFrom.toDate()
+        : c.validFrom
+          ? new Date(c.validFrom)
+          : null;
+      const to = c.validTo && typeof c.validTo === "object" && "toDate" in c.validTo
+        ? c.validTo.toDate()
+        : c.validTo
+          ? new Date(c.validTo)
+          : null;
       return (!from || now >= from) && (!to || now <= to);
     };
 
@@ -209,7 +218,7 @@ export default function DoctorProfilePage() {
       } else {
         discount = discountValue;
       }
-
+      
       // Aplicar máximo descuento si existe
       let finalDiscount = Math.min(discount, totalBeforeDiscount);
       if (coupon.maxDiscount) {
@@ -398,10 +407,18 @@ export default function DoctorProfilePage() {
         paymentProof: proofUrl,
         attendance: 'Pendiente' as const,
         patientConfirmationStatus: 'Pendiente' as const,
+        discountAmount: discountAmount > 0 ? discountAmount : 0,
+        appliedCoupon: appliedCoupon?.code || undefined,
+        patientPhone: user.phone ?? undefined,
+        doctorAddress: doctor.address ?? '',
       };
 
       console.log('🔍 About to create appointment with data:', appointmentData);
 
+      // Eliminar appliedCoupon si es undefined para evitar error de Firestore
+      if (appointmentData.appliedCoupon === undefined) {
+        delete appointmentData.appliedCoupon;
+      }
       await addAppointment(appointmentData);
 
       console.log('Cita creada exitosamente');

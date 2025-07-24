@@ -138,7 +138,10 @@ export function FinancesTab() {
     setIsProcessingPayment(true);
     try {
       await firestoreService.updateDoctorPaymentStatus(selectedPayment.id, status);
-      
+      // Si el pago es aprobado, actualizar el doctor a subscriptionStatus: 'active'
+      if (status === 'Paid') {
+        await firestoreService.updateDoctor(selectedPayment.doctorId, { subscriptionStatus: 'active' });
+      }
       toast({
         title: status === 'Paid' ? "Pago Aprobado" : "Pago Rechazado",
         description: status === 'Paid' 

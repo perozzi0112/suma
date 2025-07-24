@@ -3,36 +3,18 @@
 
 import { useState } from 'react';
 import type { MarketingMaterial } from '@/lib/types';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import Image from 'next/image';
-import { Copy, Download, Link as LinkIcon, Image as ImageIcon, Video, FileText, ExternalLink, AlertCircle, CheckCircle } from 'lucide-react';
+import { Copy, Link as LinkIcon, Image as ImageIcon, Video, FileText, AlertCircle, CheckCircle } from 'lucide-react';
 
 function MarketingMaterialCard({ material, onView }: { material: MarketingMaterial, onView: (m: MarketingMaterial) => void }) {
     const { toast } = useToast();
     const hasValidUrl = material.url && material.url.trim() !== '' && material.url !== '#';
     
-    const handleCopy = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (!hasValidUrl) {
-        toast({ 
-          variant: "destructive",
-          title: "No hay enlace disponible", 
-          description: "Este material no tiene un enlace para copiar." 
-        });
-        return;
-      }
-      navigator.clipboard.writeText(material.url);
-      toast({ 
-        title: "Enlace copiado", 
-        description: "El enlace se ha copiado al portapapeles." 
-      });
-    };
-
     const getTypeIcon = (type: string) => {
       switch(type) {
         case 'image': return <ImageIcon className="h-4 w-4 text-blue-500" />;
@@ -44,9 +26,9 @@ function MarketingMaterialCard({ material, onView }: { material: MarketingMateri
     };
 
     return (
-        <Card className="flex flex-col h-full cursor-pointer hover:border-primary/50 hover:shadow-md transition-all duration-200 group">
+        <Card className="flex flex-col h-full cursor-pointer hover:border-primary/50 hover:shadow-md transition-all duration-200 group max-w-xs mx-auto"> {/* max-w-xs y mx-auto para hacerla más compacta */}
             <CardContent className="p-0 flex-grow" onClick={() => onView(material)}>
-                <div className="aspect-video relative overflow-hidden">
+                <div className="aspect-[4/3] relative overflow-hidden" style={{ height: '120px' }}> {/* relación 4:3 y altura fija */}
                     <Image 
                       src={material.thumbnailUrl} 
                       alt={material.title} 
@@ -58,7 +40,7 @@ function MarketingMaterialCard({ material, onView }: { material: MarketingMateri
                       {getTypeIcon(material.type)}
                     </div>
                 </div>
-                <div className="p-4 space-y-3">
+                <div className="p-2 space-y-2"> {/* padding reducido */}
                     <div className="flex items-center gap-2">
                       <Badge variant="secondary" className="capitalize text-xs">
                         {material.type}
@@ -70,52 +52,11 @@ function MarketingMaterialCard({ material, onView }: { material: MarketingMateri
                         </Badge>
                       )}
                     </div>
-                    <CardTitle className="text-base font-semibold line-clamp-2">{material.title}</CardTitle>
-                    <CardDescription className="text-xs line-clamp-3 leading-relaxed">{material.description}</CardDescription>
+                    <CardTitle className="text-sm font-semibold line-clamp-2">{material.title}</CardTitle>
+                    <CardDescription className="text-xs line-clamp-2 leading-relaxed">{material.description}</CardDescription>
                 </div>
             </CardContent>
-            {hasValidUrl && (
-              <CardFooter className="flex gap-2 p-4 pt-0">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="flex-1 text-xs" 
-                        onClick={handleCopy}
-                      >
-                        <Copy className="mr-1 h-3 w-3" /> 
-                        Copiar
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Copiar enlace al portapapeles</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        className="flex-1 text-xs" 
-                        size="sm"
-                        asChild
-                      >
-                        <a href={material.url} target="_blank" rel="noopener noreferrer">
-                          <Download className="mr-1 h-3 w-3" /> 
-                          Descargar
-                        </a>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Descargar recurso</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </CardFooter>
-            )}
+            {/* Quitar CardFooter con botones Copiar y Descargar */}
         </Card>
     )
 }
@@ -188,7 +129,7 @@ export function MarketingTab({ marketingMaterials }: MarketingTabProps) {
         </CardHeader>
         <CardContent>
           {validMaterials.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2"> {/* gap reducido */}
               {validMaterials.map(material => (
                 <MarketingMaterialCard key={material.id} material={material} onView={handleViewMaterial} />
               ))}
@@ -285,23 +226,7 @@ export function MarketingTab({ marketingMaterials }: MarketingTabProps) {
               <Copy className="mr-2 h-4 w-4"/> 
               Copiar Enlace
             </Button>
-            <Button 
-              className="w-full sm:w-auto" 
-              disabled={!selectedMaterial?.url || selectedMaterial.url.trim() === '' || selectedMaterial.url === '#'}
-              asChild={selectedMaterial?.url && selectedMaterial.url.trim() !== '' && selectedMaterial.url !== '#' ? true : undefined}
-            >
-              {selectedMaterial?.url && selectedMaterial.url.trim() !== '' && selectedMaterial.url !== '#' ? (
-                <a href={selectedMaterial.url} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="mr-2 h-4 w-4"/> 
-                  Abrir Recurso
-                </a>
-              ) : (
-                <>
-                  <Download className="mr-2 h-4 w-4"/> 
-                  Sin Recurso
-                </>
-              )}
-            </Button>
+            {/* Quitar el botón Abrir Recurso */}
           </DialogFooter>
         </DialogContent>
       </Dialog>

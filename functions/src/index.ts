@@ -197,3 +197,67 @@ export const actualizarFechasPagoMedicos = onSchedule(
     );
   }
 );
+
+// Función programada para crear SellerPayment pendientes automáticamente
+export const crearPagosPendientesVendedoras = onSchedule(
+  {
+    schedule: "30 6 * * *", // Todos los días a las 6:30am
+    timeZone: "America/Caracas",
+  },
+  async () => {
+    const db = admin.firestore();
+    const sellersSnap = await db.collection("sellers").get();
+    const doctorsSnap = await db.collection("doctors").get();
+    const doctorPaymentsSnap = await db.collection("doctorPayments").get();
+    const sellerPaymentsSnap = await db.collection("sellerPayments").get();
+    const settingsDoc = await db.collection("settings").doc("main").get();
+    const settings = settingsDoc.exists ? settingsDoc.data() : {};
+    const cityFees = (settings && settings.cities) ? settings.cities : [];
+    const now = new Date();
+    const currentPeriod = now.toLocaleString('es-VE', { month: 'long', year: 'numeric' });
+
+    for (const sellerDoc of sellersSnap.docs) {
+      const seller = sellerDoc.data();
+      const sellerId = sellerDoc.id;
+      const commissionRate = seller.commissionRate || 0.2;
+      // Filtrar médicos referidos activos
+      const referredDoctors = doctorsSnap.docs.filter(d => d.data().sellerId === sellerId && d.data().status === 'active');
+      // Filtrar solo médicos con pagos confirmados este mes
+      const doctorsWithPayments = referredDoctors.filter(doc => {
+        return doctorPaymentsSnap.docs.some(payment =>
+          payment.data().doctorId === doc.id && payment.data().status === 'Paid'
+        );
+      });
+      // Calcular comisión pendiente
+      let pendingCommission = 0;
+      const includedDoctors = [];
+      for (const doc of doctorsWithPayments) {
+        const cityFee = cityFees.find((c: any) => c.name === doc.data().city)?.subscriptionFee || 0;
+        const commissionAmount = cityFee * commissionRate;
+        pendingCommission += commissionAmount;
+        includedDoctors.push({ id: doc.id, name: doc.data().name, commissionAmount });
+      }
+      // Verificar si ya existe un SellerPayment pendiente para este período
+      const alreadyExists = sellerPaymentsSnap.docs.some(p =>
+        p.data().sellerId === sellerId &&
+        p.data().period.toLowerCase() === currentPeriod.toLowerCase() &&
+        p.data().status === 'pending'
+      );
+      if (pendingCommission > 0 && !alreadyExists) {
+        await db.collection('sellerPayments').add({
+          sellerId,
+          paymentDate: now.toISOString().split('T')[0],
+          amount: pendingCommission,
+          period: currentPeriod.charAt(0).toUpperCase() + currentPeriod.slice(1),
+          includedDoctors,
+          paymentProofUrl: '',
+          transactionId: '',
+          status: 'pending',
+          readBySeller: false
+        });
+        console.log(`✅ SellerPayment creado para vendedora ${seller.name} (${sellerId}) por $${pendingCommission.toFixed(2)}`);
+      }
+    }
+    console.log('Proceso de creación automática de SellerPayments completado.');
+  }
+);

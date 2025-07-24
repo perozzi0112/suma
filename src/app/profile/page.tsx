@@ -54,6 +54,19 @@ const PasswordChangeSchema = z.object({
   path: ["confirmPassword"],
 });
 
+const countryCodes = [
+  { code: '+58', name: 'Venezuela' },
+  { code: '+1', name: 'Estados Unidos/Canadá' },
+  { code: '+34', name: 'España' },
+  { code: '+57', name: 'Colombia' },
+  { code: '+54', name: 'Argentina' },
+  { code: '+55', name: 'Brasil' },
+  { code: '+51', name: 'Perú' },
+  { code: '+52', name: 'México' },
+  { code: '+56', name: 'Chile' },
+  { code: '+53', name: 'Cuba' },
+  // ...agrega más si lo deseas
+];
 
 export default function ProfilePage() {
   const { user, updateUser, changePassword } = useAuth();
@@ -69,6 +82,7 @@ export default function ProfilePage() {
   const [cedula, setCedula] = useState('');
   const [phone, setPhone] = useState('');
   const [city, setCity] = useState('');
+  const [countryCode, setCountryCode] = useState('+58');
   
   // State for password change
   const [currentPassword, setCurrentPassword] = useState('');
@@ -89,9 +103,22 @@ export default function ProfilePage() {
       setAge(user.age !== undefined && user.age !== null ? String(user.age) : '');
       setGender(user.gender ?? '');
       setCedula(user.cedula ?? '');
-      setPhone(user.phone ?? '');
       setCity(user.city ?? '');
       setProfileImage(user.profileImage ?? null);
+      // Separar código de país y número si ya existe
+      if (user.phone && user.phone.startsWith('+')) {
+        const match = user.phone.match(/^(\+\d{1,4})(\d{7,15})$/);
+        if (match) {
+          setCountryCode(match[1]);
+          setPhone(match[2]);
+        } else {
+          setCountryCode('+58');
+          setPhone(user.phone);
+        }
+      } else {
+        setCountryCode('+58');
+        setPhone(user.phone ?? '');
+      }
     }
   }, [user?.name, user?.age, user?.gender, user?.cedula, user?.phone, user?.city, user?.profileImage, user, router]);
 
@@ -160,7 +187,10 @@ export default function ProfilePage() {
 
     // Sanitizar y validar antes de zod
     const nameSan = validateName(fullName);
-    const phoneSan = validatePhone(phone);
+    // Eliminar cero inicial si existe
+    const phoneSanitized = phone && phone.startsWith('0') ? phone.slice(1) : phone;
+    const fullPhone = phoneSanitized ? `${countryCode}${phoneSanitized}` : '';
+    const phoneSan = validatePhone(fullPhone);
     const cedulaSan = validateCedula(cedula);
     const citySan = validateCity(city);
     const ageSan = validateAge(age);
@@ -193,7 +223,7 @@ export default function ProfilePage() {
       age: result.data.age,
       gender: result.data.gender === '' ? null : result.data.gender,
       cedula: finalCedula, // Mantener la cédula original si ya existe
-      phone: result.data.phone,
+      phone: fullPhone,
       city: result.data.city,
     });
 
@@ -395,13 +425,33 @@ export default function ProfilePage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">Teléfono</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="ej., 0412-1234567"
-                    />
+                    <div className="flex gap-2">
+                      <Select value={countryCode} onValueChange={setCountryCode}>
+                        <SelectTrigger className="w-28">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {countryCodes.map((c) => (
+                            <SelectItem key={c.code} value={c.code}>{c.name} ({c.code})</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => {
+                          let val = e.target.value.replace(/\D/g, '');
+                          if (val.startsWith('0')) val = val.slice(1);
+                          setPhone(val);
+                        }}
+                        placeholder="Ej: 4121234567"
+                        maxLength={15}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Ingresa solo números, sin el código de país. Ejemplo para Venezuela: <span className="font-mono">4121234567</span>
+                    </p>
                   </div>
                 </div>
 

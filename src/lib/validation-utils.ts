@@ -23,11 +23,11 @@ export const validateEmail = (email: string): { isValid: boolean; sanitized: str
 
 export const validatePhone = (phone: string): { isValid: boolean; sanitized: string } => {
   const sanitized = sanitizeText(phone).replace(/\D/g, '');
-  const phoneRegex = /^(0?4\d{2}|4\d{2})\d{7}$/;
-  
+  // Permitir números internacionales de 7 a 15 dígitos
+  const phoneRegex = /^[0-9]{7,15}$/;
   return {
     isValid: phoneRegex.test(sanitized),
-    sanitized: sanitized.length === 11 ? sanitized : sanitized.padStart(11, '0')
+    sanitized
   };
 };
 
