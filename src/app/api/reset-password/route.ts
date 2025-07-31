@@ -1,25 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
-import { getFirestore } from 'firebase-admin/firestore';
-
-if (!getApps().length) {
-  let adminConfig;
-  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-    adminConfig = {
-      credential: cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)),
-    };
-  } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-    adminConfig = {};
-  }
-  if (adminConfig) {
-    initializeApp(adminConfig);
-  } else {
-    console.error('Firebase Admin no inicializado: variables de entorno faltantes');
-  }
-}
-const db = getFirestore();
-const auth = getAuth();
+import { db, auth } from '@/lib/firebase-admin';
 
 export async function POST(req: NextRequest) {
   try {

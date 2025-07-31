@@ -24,6 +24,7 @@ import { useAuth } from "@/lib/auth";
 import { useSettings } from "@/lib/settings";
 import Link from "next/link";
 import { DoctorReviews } from "@/components/doctor-reviews";
+import { CalendarNotification } from "@/components/calendar-notification";
 
 const dayKeyMapping = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
 
@@ -76,6 +77,8 @@ export default function DoctorProfilePage() {
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
   const [discountAmount, setDiscountAmount] = useState(0);
+  const [showCalendarNotification, setShowCalendarNotification] = useState(false);
+  const [lastCreatedAppointment, setLastCreatedAppointment] = useState<any>(null);
 
   const fetchAppointments = useCallback(async () => {
     if (id) {
@@ -428,12 +431,24 @@ export default function DoctorProfilePage() {
       // Refrescar las citas para actualizar los horarios disponibles
       await fetchAppointments();
 
+      // Guardar los datos de la cita para la notificación de calendario
+      setLastCreatedAppointment({
+        ...appointmentData,
+        doctorName: doctor.name,
+        doctorAddress: doctor.address,
+      });
+
       toast({
         title: "¡Cita Agendada!",
         description: "Tu cita ha sido confirmada exitosamente.",
       });
 
       setStep('confirmation');
+      
+      // Mostrar notificación de calendario después de 2 segundos
+      setTimeout(() => {
+        setShowCalendarNotification(true);
+      }, 2000);
     } catch (error) {
       console.error('Error al agendar cita:', error);
       
@@ -541,12 +556,20 @@ export default function DoctorProfilePage() {
                             </Button>
                         </CardContent>
                     </Card>
-                </div>
-            </main>
-            <BottomNav />
-        </div>
-    );
-  }
+                        </div>
+      </main>
+      <BottomNav />
+      
+      {/* Notificación de calendario */}
+      {showCalendarNotification && lastCreatedAppointment && (
+        <CalendarNotification
+          appointment={lastCreatedAppointment}
+          onClose={() => setShowCalendarNotification(false)}
+        />
+      )}
+    </div>
+  );
+}
 
   const isDayDisabled = (date: Date) => {
     if (date < new Date(new Date().setHours(0, 0, 0, 0))) {
@@ -1059,6 +1082,14 @@ export default function DoctorProfilePage() {
         </div>
       </main>
       <BottomNav />
+      
+      {/* Notificación de calendario */}
+      {showCalendarNotification && lastCreatedAppointment && (
+        <CalendarNotification
+          appointment={lastCreatedAppointment}
+          onClose={() => setShowCalendarNotification(false)}
+        />
+      )}
     </div>
   );
 }
