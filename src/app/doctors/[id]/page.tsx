@@ -78,7 +78,14 @@ export default function DoctorProfilePage() {
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
   const [discountAmount, setDiscountAmount] = useState(0);
   const [showCalendarNotification, setShowCalendarNotification] = useState(false);
-  const [lastCreatedAppointment, setLastCreatedAppointment] = useState<any>(null);
+  const [lastCreatedAppointment, setLastCreatedAppointment] = useState<{
+    doctorName: string;
+    date: string;
+    time: string;
+    services: { name: string }[];
+    totalPrice: number;
+    doctorAddress?: string;
+  } | null>(null);
 
   const fetchAppointments = useCallback(async () => {
     if (id) {

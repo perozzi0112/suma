@@ -8,11 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+
 import Image from 'next/image';
 import { Copy, Link as LinkIcon, Image as ImageIcon, Video, FileText, AlertCircle, CheckCircle } from 'lucide-react';
 
 function MarketingMaterialCard({ material, onView }: { material: MarketingMaterial, onView: (m: MarketingMaterial) => void }) {
-    const { toast } = useToast();
     const hasValidUrl = material.url && material.url.trim() !== '' && material.url !== '#';
     
     const getTypeIcon = (type: string) => {

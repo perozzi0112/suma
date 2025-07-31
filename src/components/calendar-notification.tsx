@@ -7,7 +7,14 @@ import { Calendar, X, CheckCircle } from 'lucide-react';
 import { generateGoogleCalendarLink } from '@/lib/calendar-utils';
 
 interface CalendarNotificationProps {
-  appointment: any;
+  appointment: {
+    doctorName: string;
+    date: string;
+    time: string;
+    services: { name: string }[];
+    totalPrice: number;
+    doctorAddress?: string;
+  };
   onClose: () => void;
 }
 

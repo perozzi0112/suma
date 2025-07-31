@@ -1,4 +1,11 @@
-export function generateGoogleCalendarLink(appointment: any) {
+export function generateGoogleCalendarLink(appointment: {
+  doctorName: string;
+  date: string;
+  time: string;
+  services: { name: string }[];
+  totalPrice: number;
+  doctorAddress?: string;
+}) {
   const event = {
     text: `Cita con Dr. ${appointment.doctorName}`,
     dates: `${appointment.date}T${appointment.time}/${appointment.date}T${getEndTime(appointment.time)}`,
