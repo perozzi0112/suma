@@ -63,7 +63,7 @@ import {
 import { useSettings } from "@/lib/settings";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
-import { doctors as mockDoctors } from "@/lib/data";
+// Removed mock data import - using only Firestore data
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import Image from 'next/image';
 
@@ -140,23 +140,16 @@ export default function FindDoctorPage() {
           const docs = await firestoreService.getDoctors();
           console.log('📊 Médicos cargados de Firestore:', docs.length);
           
-          let activeDocs = docs.filter(d => d.status === 'active');
-          
-          // Si no hay médicos en Firestore, usar datos de prueba
-          if (activeDocs.length === 0) {
-            console.log('⚠️ No hay médicos en Firestore, usando datos de prueba');
-            activeDocs = mockDoctors.filter(d => d.status === 'active');
-          }
+          const activeDocs = docs.filter(d => d.status === 'active');
           
           setAllDoctors(activeDocs);
           setFilteredDoctors(activeDocs);
         } catch (error) {
-          console.error("Failed to fetch doctors, using mock data.", error);
+          console.error("Failed to fetch doctors from Firestore.", error);
           
-          // Usar datos de prueba en caso de error
-          const fallbackDocs = mockDoctors.filter(d => d.status === 'active');
-          setAllDoctors(fallbackDocs);
-          setFilteredDoctors(fallbackDocs);
+          // No usar datos de prueba - mostrar lista vacía
+          setAllDoctors([]);
+          setFilteredDoctors([]);
           
           toast({
             variant: "destructive",
