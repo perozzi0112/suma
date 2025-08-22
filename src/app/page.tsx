@@ -6,29 +6,11 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
 import { Search, UserCheck, CalendarDays, Bot } from "lucide-react";
-import React, { useState, useEffect } from "react";
-import * as firestoreService from "@/lib/firestoreService";
-import { Skeleton } from "@/components/ui/skeleton";
+import React from "react";
 import { InstallPwaBanner } from "@/components/install-pwa-banner";
 
 export default function Home() {
-  const [heroImageUrl, setHeroImageUrl] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchSettings() {
-      try {
-        const settings = await firestoreService.getSettings();
-        setHeroImageUrl(settings?.heroImageUrl || "https://placehold.co/1200x600.png");
-      } catch (error) {
-        console.error("Failed to fetch settings, possibly offline. Using defaults.", error);
-        setHeroImageUrl("https://placehold.co/1200x600.png");
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    fetchSettings();
-  }, []);
+  const heroImageUrl = "/images/hero-1755646276537.png";
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -61,19 +43,15 @@ export default function Home() {
         {/* Features Section */}
         <section className="container pb-20 md:pb-32">
            <div className="relative rounded-xl shadow-2xl overflow-hidden">
-             {isLoading ? (
-               <Skeleton className="w-full aspect-[2/1] rounded-xl" />
-             ) : (
-                <Image
-                    src={heroImageUrl!}
-                    alt="Paciente feliz en consulta con un doctor"
-                    width={1200}
-                    height={600}
-                    className="w-full h-auto object-cover"
-                    data-ai-hint="doctor patient"
-                />
-             )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+             <Image
+                 src={heroImageUrl}
+                 alt="Paciente feliz en consulta con un doctor"
+                 width={1200}
+                 height={600}
+                 className="w-full h-auto object-cover"
+                 data-ai-hint="doctor patient"
+             />
+             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
            </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 -mt-16 sm:-mt-24 relative z-10 px-2 sm:px-4">

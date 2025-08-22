@@ -13,11 +13,10 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Stethoscope, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { z } from 'zod';
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
-import { useSettings } from "@/lib/settings";
 import Image from "next/image";
 import {
   Dialog,
@@ -39,7 +38,7 @@ const LoginSchema = z.object({
 export default function LoginPage() {
   const { login, sendPasswordReset } = useAuth();
   const { toast } = useToast();
-  const { logoUrl } = useSettings();
+  const logoUrl = "/images/logo_suma.png";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -93,22 +92,17 @@ export default function LoginPage() {
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
       <Card className="mx-auto max-w-sm w-full">
         <CardHeader className="text-center">
-          {logoUrl ? (
-            <div className="mx-auto mb-4 h-16 flex items-center">
-              <Image 
-                src={logoUrl} 
-                alt="SUMA Logo" 
-                width={160} 
-                height={60} 
-                className="object-contain"
-                data-ai-hint="logo"
-              />
-            </div>
-          ) : (
-            <div className="inline-block mx-auto mb-4">
-              <Stethoscope className="h-10 w-10 text-primary" />
-            </div>
-          )}
+          <div className="mx-auto mb-6 flex items-center justify-center">
+            <Image 
+              src={logoUrl} 
+              alt="SUMA Logo" 
+              width={200} 
+              height={80} 
+              className="h-16 w-auto object-contain"
+              priority
+              data-ai-hint="logo"
+            />
+          </div>
           <CardTitle className="text-2xl font-headline">Bienvenido de Nuevo</CardTitle>
           <CardDescription>
             Ingresa tus credenciales para acceder.
